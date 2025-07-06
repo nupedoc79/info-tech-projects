@@ -1,0 +1,1711 @@
+Option Explicit
+'  Created By: Vincent P. Taylor                                                                      *
+'  Date:       10/2008                                                                                *
+'  Name:       Percent Program                                                                        *
+'  Purpose:    Written for local Optical Eye Care company                                             *
+'  Function:   Read weekly lab data excel spreadsheets and calculate quarter dollar totals, by  eye   *
+'              wear brand and type sold.                                                              *
+'******************************************************************************************************
+'Define All Program Variables
+Dim I As Integer
+Dim Loc1 As Integer
+Dim Loc2 As Integer
+Dim tempVar As Single
+Dim LoopAgain As Boolean
+Dim SAVEIT As Integer
+Dim SW As Boolean
+Dim Tot_Csat As Single
+Dim Tot_Q5 As Single
+Dim Tot_Q6 As Single
+Dim Tot_Blend As Single
+Dim Tot_Remake As Single
+Dim Tot_ContRemake As Single
+Dim Tot_LabRemake As Single
+Dim Tot_OneHour As Single
+Dim Tot_Brkg As Single
+Dim Tot_Jph As Integer
+Dim Tot_Ave_Percent As Single
+Dim Tot_AP As Single
+
+Dim labName(14) As String
+Dim labStore(14) As String
+Dim labCsat(14) As Single
+Dim labQ5(14) As Single
+Dim labQ6(14) As Single
+Dim labBlend(14) As Single
+Dim labTotRemake(15) As Single
+Dim labContRemake(15) As Single
+Dim labRemake(15) As Single
+Dim labOneHour(14) As Single
+Dim labBrkg(15) As Single
+Dim labJph(14) As Single
+Dim Ave_Rank(15) As Single
+
+Private Sub Main()
+
+'Populate Array With WorkSheet Data
+Call Populate_LabName_Array
+Call Populate_LabStore_Array
+Call Populate_Csat_Array
+Call Populate_Q5_Array
+Call Populate_Q6_Array
+Call Populate_Blend_Array
+Call Populate_Blend_Array
+Call Populate_TotRemake_Array
+Call Populate_ContRemake_Array
+Call Populate_Remake_Array
+Call Populate_OneHour_Array
+Call Populate_Brkg_Array
+Call Populate_Jph_Array
+'Determine Rankings
+Call Bubble_Sort
+'Determine Emanuele percentages
+'Call Calculate_Emanuele
+'Populate Overall Ranking Rolls
+Call Populate_OV_Ranking
+'Calculate Average Ranking Percentage
+Call Calculate_Ave_Rank_Percent
+'Store Average Ranking Data
+Call Populate_Ave_Rank_Array
+'Sort Average Rank Array
+Call Sort_Ave_Rank_Array
+'Calculate Ave Ranking Rolls
+Call Calculate_Ave_Rank
+End Sub
+
+Private Sub Populate_LabName_Array()
+    Loc1 = 7
+    For I = 0 To 13
+        labName(I) = Cells(Loc1, "A").Value
+        Loc1 = Loc1 + 1
+    Next I
+End Sub
+Private Sub Populate_LabStore_Array()
+    Loc1 = 7
+    For I = 0 To 13
+        labStore(I) = Cells(Loc1, "B").Value
+        Loc1 = Loc1 + 1
+    Next I
+End Sub
+
+Private Sub Populate_Csat_Array()
+    Loc1 = 7
+    For I = 0 To 13
+        labCsat(I) = Cells(Loc1, "C").Value
+        Loc1 = Loc1 + 1
+    Next I
+End Sub
+
+Private Sub Populate_Q5_Array()
+    Loc1 = 7
+    For I = 0 To 13
+        labQ5(I) = Cells(Loc1, "D").Value
+        Loc1 = Loc1 + 1
+    Next I
+End Sub
+
+Private Sub Populate_Q6_Array()
+    Loc1 = 7
+    For I = 0 To 13
+        labQ6(I) = Cells(Loc1, "E").Value
+        Loc1 = Loc1 + 1
+    Next I
+End Sub
+
+Private Sub Populate_Blend_Array()
+    Loc1 = 7
+    For I = 0 To 13
+        labBlend(I) = Cells(Loc1, "F").Value
+        Loc1 = Loc1 + 1
+    Next I
+End Sub
+
+Private Sub Populate_TotRemake_Array()
+    Loc1 = 7
+    For I = 0 To 13
+        labTotRemake(I) = Cells(Loc1, "G").Value
+        Loc1 = Loc1 + 1
+    Next I
+End Sub
+
+Private Sub Populate_ContRemake_Array()
+    Loc1 = 7
+    For I = 0 To 13
+        labContRemake(I) = Cells(Loc1, "H").Value
+        Loc1 = Loc1 + 1
+    Next I
+End Sub
+
+Private Sub Populate_Remake_Array()
+    Loc1 = 7
+    For I = 0 To 13
+        labRemake(I) = Cells(Loc1, "I").Value
+        Loc1 = Loc1 + 1
+    Next I
+End Sub
+
+Private Sub Populate_OneHour_Array()
+    Loc1 = 7
+    For I = 0 To 13
+        labOneHour(I) = Cells(Loc1, "J").Value
+        Loc1 = Loc1 + 1
+    Next I
+End Sub
+
+Private Sub Populate_Brkg_Array()
+    Loc1 = 7
+    For I = 0 To 13
+        labBrkg(I) = Cells(Loc1, "K").Value
+        Loc1 = Loc1 + 1
+    Next I
+End Sub
+Private Sub Populate_Jph_Array()
+    Loc1 = 7
+    For I = 0 To 13
+        labJph(I) = Cells(Loc1, "L").Value
+        Loc1 = Loc1 + 1
+    Next I
+End Sub
+Private Sub Populate_Ave_Rank_Array()
+  Loc1 = 32
+    For I = 0 To 13
+        Ave_Rank(I) = Cells(Loc1, "N").Value
+        Loc1 = Loc1 + 1
+    Next I
+    
+ End Sub
+Private Sub Bubble_Sort()
+  
+  'Sort labCsat Information in Highest to Lowest
+  Do
+    LoopAgain = False
+    For I = 0 To 13
+        If labCsat(I + 1) > labCsat(I) Then
+           tempVar = labCsat(I + 1)
+           labCsat(I + 1) = labCsat(I)
+           labCsat(I) = tempVar
+           LoopAgain = True
+        End If
+        Next I
+        
+   Loop While LoopAgain = True
+   
+  'Sort labQ5 Information Highest to Lowest
+  Do
+    LoopAgain = False
+    For I = 0 To 13
+        If labQ5(I + 1) > labQ5(I) Then
+           tempVar = labQ5(I + 1)
+           labQ5(I + 1) = labQ5(I)
+           labQ5(I) = tempVar
+           LoopAgain = True
+        End If
+        Next I
+   Loop While LoopAgain = True
+   
+   'Sort labQ6 Information Highest to Lowest
+  Do
+    LoopAgain = False
+    For I = 0 To 13
+        If labQ6(I + 1) > labQ6(I) Then
+           tempVar = labQ6(I + 1)
+           labQ6(I + 1) = labQ6(I)
+           labQ6(I) = tempVar
+           LoopAgain = True
+        End If
+        Next I
+   Loop While LoopAgain = True
+   
+  'Sort labBlend Information in Highest to Lowest
+  Do
+    LoopAgain = False
+    For I = 0 To 13
+        If labBlend(I + 1) > labBlend(I) Then
+           tempVar = labBlend(I + 1)
+           labBlend(I + 1) = labBlend(I)
+           labBlend(I) = tempVar
+           LoopAgain = True
+        End If
+        Next I
+   Loop While LoopAgain = True
+   
+   'Sort labTotRemake Information Lowest to Highest
+  Do
+    LoopAgain = False
+    For I = 0 To 13
+        If labTotRemake(I) > labTotRemake(I + 1) Then
+           tempVar = labTotRemake(I)
+           labTotRemake(I) = labTotRemake(I + 1)
+           labTotRemake(I + 1) = tempVar
+           LoopAgain = True
+        End If
+        Next I
+   Loop While LoopAgain = True
+   
+  'Sort labContRemake Information Lowest to Highest
+  Do
+    LoopAgain = False
+    For I = 0 To 13
+        If labContRemake(I) > labContRemake(I + 1) Then
+           tempVar = labContRemake(I)
+           labContRemake(I) = labContRemake(I + 1)
+           labContRemake(I + 1) = tempVar
+           LoopAgain = True
+        End If
+        Next I
+   Loop While LoopAgain = True
+   
+   'Sort labRemake Information Lowest to Highest
+  Do
+    LoopAgain = False
+    For I = 0 To 13
+        If labRemake(I) > labRemake(I + 1) Then
+           tempVar = labRemake(I)
+           labRemake(I) = labRemake(I + 1)
+           labRemake(I + 1) = tempVar
+           LoopAgain = True
+        End If
+        Next I
+   Loop While LoopAgain = True
+   
+   'Sort labOneHour Information Highest to lowest
+  Do
+    LoopAgain = False
+    For I = 0 To 13
+        If labOneHour(I + 1) > labOneHour(I) Then
+           tempVar = labOneHour(I + 1)
+           labOneHour(I + 1) = labOneHour(I)
+           labOneHour(I) = tempVar
+           LoopAgain = True
+        End If
+        Next I
+   Loop While LoopAgain = True
+   
+   'Sort labBrkg Information Lowest to Highest
+  Do
+    LoopAgain = False
+    For I = 0 To 13
+        If labBrkg(I) > labBrkg(I + 1) Then
+           tempVar = labBrkg(I)
+           labBrkg(I) = labBrkg(I + 1)
+           labBrkg(I + 1) = tempVar
+           LoopAgain = True
+        End If
+        Next I
+   Loop While LoopAgain = True
+   
+    'Sort labJph Information Highest to Lowest
+  Do
+    LoopAgain = False
+    For I = 0 To 13
+        If labJph(I + 1) > labJph(I) Then
+           tempVar = labJph(I + 1)
+           labJph(I + 1) = labJph(I)
+           labJph(I) = tempVar
+           LoopAgain = True
+        End If
+        Next I
+   Loop While LoopAgain = True
+  End Sub
+  Private Sub Sort_Ave_Rank_Array()
+  
+  'Sort Ave Rank Array Information Lowest to Highest
+  Do
+    LoopAgain = False
+    For I = 0 To 13
+        If Ave_Rank(I) > Ave_Rank(I + 1) Then
+           tempVar = Ave_Rank(I)
+           Ave_Rank(I) = Ave_Rank(I + 1)
+           Ave_Rank(I + 1) = tempVar
+           LoopAgain = True
+        End If
+        Next I
+        
+   Loop While LoopAgain = True
+
+   End Sub
+    
+  Private Sub Calculate_Emmanuel()
+   For I = 0 To 14
+       Tot_Csat = Tot_Csat + labCsat(I)
+    Next I
+    Tot_Csat = Tot_Csat / 14
+    Cells(22, "C").Value = Tot_Csat
+    
+   For I = 0 To 14
+       Tot_Q5 = Tot_Q5 + labQ5(I)
+    Next I
+    Tot_Q5 = Tot_Q5 / 14
+    Cells(22, "D").Value = Tot_Q5
+    
+   For I = 0 To 14
+       Tot_Q6 = Tot_Q6 + labQ6(I)
+    Next I
+    Tot_Q6 = Tot_Q6 / 14
+    Cells(22, "E").Value = Tot_Q6
+    
+   For I = 0 To 14
+       Tot_Blend = Tot_Blend + labBlend(I)
+    Next I
+    Tot_Blend = Tot_Blend / 14
+    Cells(22, "F").Value = Tot_Blend
+    
+  For I = 0 To 14
+       Tot_Remake = Tot_Remake + labTotRemake(I)
+    Next I
+    Tot_Remake = Tot_Remake / 14
+    Cells(22, "G").Value = Tot_Remake
+    
+ For I = 0 To 14
+       Tot_ContRemake = Tot_ContRemake + labContRemake(I)
+    Next I
+    Tot_ContRemake = Tot_ContRemake / 14
+    Cells(22, "H").Value = Tot_ContRemake
+    
+ For I = 0 To 14
+       Tot_LabRemake = Tot_LabRemake + labRemake(I)
+    Next I
+    Tot_LabRemake = Tot_LabRemake / 14
+    Cells(22, "I").Value = Tot_LabRemake
+    
+ For I = 0 To 14
+       Tot_OneHour = Tot_OneHour + labOneHour(I)
+    Next I
+    Tot_OneHour = Tot_OneHour / 14
+    Cells(22, "J").Value = Tot_OneHour
+        
+ For I = 0 To 14
+       Tot_Brkg = Tot_Brkg + labBrkg(I)
+       Cells(22, "K").Value = Tot_Brkg
+    Next I
+    Tot_Brkg = Tot_Brkg / 14
+    
+ For I = 0 To 14
+       Tot_Jph = Tot_Jph + labJph(I)
+    Next I
+    Tot_Csat = Tot_Csat / 14
+    Cells(22, "L").Value = Tot_Jph
+ End Sub
+ Private Sub Populate_OV_Ranking()
+ 'Starting Location
+ Loc2 = 32
+ SW = True
+  
+ 'Get Names and Store
+ For I = 0 To 13
+          Cells(Loc2, "A").Value = labName(I)
+          Cells(Loc2, "B").Value = labStore(I)
+          Loc2 = Loc2 + 1
+     Next I
+     Loc2 = 32
+          
+ 'Assign Ranking
+ For I = 0 To 13
+           If Cells(7, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(8, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(9, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(10, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(11, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(12, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(13, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(14, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(15, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(16, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(17, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(18, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(19, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(20, "C").Value = labCsat(I) Then
+            Cells(Loc2, "C").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            Loc2 = 32
+            
+ For I = 0 To 13
+           If Cells(7, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(8, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(9, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(10, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(11, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(12, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(13, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(14, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(15, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(16, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(17, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(18, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(19, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(20, "D").Value = labQ5(I) Then
+            Cells(Loc2, "D").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            Loc2 = 32
+            
+ For I = 0 To 13
+           If Cells(7, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(8, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(9, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(10, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(11, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(12, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(13, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(14, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(15, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(16, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(17, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(18, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(19, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(20, "E").Value = labQ6(I) Then
+            Cells(Loc2, "E").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            Loc2 = 32
+            
+ For I = 0 To 13
+           If Cells(7, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(8, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(9, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(10, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(11, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(12, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(13, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(14, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(15, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(16, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(17, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(18, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(19, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(20, "F").Value = labBlend(I) Then
+            Cells(Loc2, "F").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            Loc2 = 32
+            
+ For I = 0 To 13
+           If Cells(7, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(8, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(9, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(10, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(11, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(12, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(13, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(14, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(15, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(16, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(17, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(18, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(19, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(20, "G").Value = labTotRemake(I) Then
+            Cells(Loc2, "G").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            Loc2 = 32
+            
+ For I = 0 To 13
+           If Cells(7, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(8, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(9, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(10, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(11, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(12, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(13, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(14, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(15, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(16, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(17, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(18, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(19, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(20, "H").Value = labContRemake(I) Then
+            Cells(Loc2, "H").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            Loc2 = 32
+            
+ For I = 0 To 13
+           If Cells(7, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(8, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(9, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(10, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(11, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(12, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(13, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(14, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(15, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(16, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(17, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(18, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(19, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(20, "I").Value = labRemake(I) Then
+            Cells(Loc2, "I").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            Loc2 = 32
+            
+ For I = 0 To 14
+           If Cells(7, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(8, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(9, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(10, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(11, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(12, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(13, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(14, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(15, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(16, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(17, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(18, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(19, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(20, "J").Value = labOneHour(I) Then
+            Cells(Loc2, "J").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            Loc2 = 32
+            
+ For I = 0 To 14
+           If Cells(7, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(8, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(9, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(10, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(11, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(12, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(13, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(14, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(15, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(16, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(17, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(18, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(19, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 14
+           If Cells(20, "K").Value = labBrkg(I) Then
+            Cells(Loc2, "K").Value = I
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            Loc2 = 32
+            
+ For I = 0 To 13
+           If Cells(7, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+ 
+ For I = 0 To 13
+           If Cells(8, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+           
+For I = 0 To 13
+           If Cells(9, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+ 
+ For I = 0 To 13
+           If Cells(10, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+           
+ For I = 0 To 13
+           If Cells(11, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+           
+ For I = 0 To 13
+           If Cells(12, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+           
+ For I = 0 To 13
+           If Cells(13, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+           
+ For I = 0 To 13
+           If Cells(14, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+           
+ For I = 0 To 13
+           If Cells(15, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+           
+For I = 0 To 13
+           If Cells(16, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+           
+ For I = 0 To 13
+           If Cells(17, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+           
+ For I = 0 To 13
+           If Cells(18, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+           
+ For I = 0 To 13
+           If Cells(19, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+           
+ For I = 0 To 13
+           If Cells(20, "L").Value = labJph(I) Then
+              If labJph(I) < 0.01 And SW = True Then
+                 SW = False
+                 SAVEIT = I + 1
+              End If
+              If labJph(I) < 0.01 And SW = False Then
+                 Cells(Loc2, "L").Value = SAVEIT
+              ElseIf labJph(I) >= 0.01 And SW = True Then
+                     Cells(Loc2, "L").Value = I + 1
+                     ElseIf labJph(I) > 0.01 And SW = False Then
+                            Cells(Loc2, "L").Value = SAVEIT
+                     End If
+           End If
+           Next I
+           Loc2 = Loc2 + 1
+           SW = True
+  End Sub
+ 
+   Private Sub Calculate_Ave_Rank_Percent()
+   Tot_Ave_Percent = Cells(32, "C").Value + Cells(32, "D").Value + Cells(32, "E").Value + Cells(32, "F").Value + Cells(32, "G").Value + Cells(32, "H").Value + Cells(32, "I").Value + Cells(32, "J").Value + Cells(32, "K").Value + Cells(32, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(32, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(33, "C").Value + Cells(33, "D").Value + Cells(33, "E").Value + Cells(33, "F").Value + Cells(33, "G").Value + Cells(33, "H").Value + Cells(33, "I").Value + Cells(33, "J").Value + Cells(33, "K").Value + Cells(33, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(33, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(34, "C").Value + Cells(34, "D").Value + Cells(34, "E").Value + Cells(34, "F").Value + Cells(34, "G").Value + Cells(34, "H").Value + Cells(34, "I").Value + Cells(34, "J").Value + Cells(34, "K").Value + Cells(34, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(34, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(35, "C").Value + Cells(35, "D").Value + Cells(35, "E").Value + Cells(35, "F").Value + Cells(35, "G").Value + Cells(35, "H").Value + Cells(35, "I").Value + Cells(35, "J").Value + Cells(35, "K").Value + Cells(35, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(35, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(36, "C").Value + Cells(36, "D").Value + Cells(36, "E").Value + Cells(36, "F").Value + Cells(36, "G").Value + Cells(36, "H").Value + Cells(36, "I").Value + Cells(36, "J").Value + Cells(36, "K").Value + Cells(36, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(36, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(37, "C").Value + Cells(37, "D").Value + Cells(37, "E").Value + Cells(37, "F").Value + Cells(37, "G").Value + Cells(37, "H").Value + Cells(37, "I").Value + Cells(37, "J").Value + Cells(37, "K").Value + Cells(37, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(37, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(38, "C").Value + Cells(38, "D").Value + Cells(38, "E").Value + Cells(38, "F").Value + Cells(38, "G").Value + Cells(38, "H").Value + Cells(38, "I").Value + Cells(38, "J").Value + Cells(38, "K").Value + Cells(38, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(38, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(39, "C").Value + Cells(39, "D").Value + Cells(39, "E").Value + Cells(39, "F").Value + Cells(39, "G").Value + Cells(39, "H").Value + Cells(39, "I").Value + Cells(39, "J").Value + Cells(39, "K").Value + Cells(39, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(39, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(40, "C").Value + Cells(40, "D").Value + Cells(40, "E").Value + Cells(40, "F").Value + Cells(40, "G").Value + Cells(40, "H").Value + Cells(40, "I").Value + Cells(40, "J").Value + Cells(40, "K").Value + Cells(40, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(40, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(41, "C").Value + Cells(41, "D").Value + Cells(41, "E").Value + Cells(41, "F").Value + Cells(41, "G").Value + Cells(41, "H").Value + Cells(41, "I").Value + Cells(41, "J").Value + Cells(41, "K").Value + Cells(41, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(41, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(42, "C").Value + Cells(42, "D").Value + Cells(42, "E").Value + Cells(42, "F").Value + Cells(42, "G").Value + Cells(42, "H").Value + Cells(42, "I").Value + Cells(42, "J").Value + Cells(42, "K").Value + Cells(42, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(42, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(43, "C").Value + Cells(43, "D").Value + Cells(43, "E").Value + Cells(43, "F").Value + Cells(43, "G").Value + Cells(43, "H").Value + Cells(43, "I").Value + Cells(43, "J").Value + Cells(43, "K").Value + Cells(43, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(43, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(44, "C").Value + Cells(44, "D").Value + Cells(44, "E").Value + Cells(44, "F").Value + Cells(44, "G").Value + Cells(44, "H").Value + Cells(44, "I").Value + Cells(44, "J").Value + Cells(44, "K").Value + Cells(44, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(44, "N").Value = Tot_AP
+   
+   Tot_Ave_Percent = Cells(45, "C").Value + Cells(45, "D").Value + Cells(45, "E").Value + Cells(45, "F").Value + Cells(45, "G").Value + Cells(45, "H").Value + Cells(45, "I").Value + Cells(45, "J").Value + Cells(45, "K").Value + Cells(45, "L").Value
+   Tot_AP = Tot_Ave_Percent / 10
+   Cells(45, "N").Value = Tot_AP
+                             
+  End Sub
+  
+  Private Sub Calculate_Ave_Rank()
+  'Starting Location
+  Loc2 = 32
+  
+  'Assign Ranking
+  For I = 0 To 13
+           If Cells(32, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(33, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(34, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(35, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(36, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(37, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(38, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(39, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(40, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(41, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(42, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(43, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(44, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            
+ For I = 0 To 13
+           If Cells(45, "N").Value = Ave_Rank(I) Then
+            Cells(Loc2, "M").Value = I + 1
+            End If
+            Next I
+            Loc2 = Loc2 + 1
+            Loc2 = 32
+ 
+
+  End Sub
