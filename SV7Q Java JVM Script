@@ -1,0 +1,44 @@
+export JZOS_HOME=/u/home/nsdvpt/lib/jzos_1.1.2
+export JAVA_HOME=/usr/lpp/java/J1.4
+export LIB_HOME=/u/home/nsdvpt/lib
+
+export PATH="${JAVA_HOME}"/bin:/bin
+
+LIBPATH="$LIBPATH":"${JAVA_HOME}"/bin
+LIBPATH="$LIBPATH":"${JAVA_HOME}"/bin/classic
+LIBPATH="$LIBPATH":"${JZOS_HOME}"
+export LIBPATH="$LIBPATH":
+
+# SV7Q jar file.
+CLASSPATH="${LIB_HOME}"/SV7Q.jar
+
+# Add JZOS required jars to end of CLASSPATH
+for i in "${JZOS_HOME}"/*.jar; do
+    CLASSPATH="$CLASSPATH":"$i"
+    done
+
+# Add jwsdp required jars to end of CLASSPATH
+for i in "${LIB_HOME}/jwsdp_1.4"/*.jar; do
+    CLASSPATH="$CLASSPATH":"$i"
+    done
+
+export CLASSPATH="$CLASSPATH":
+
+# Set JZOS specific options
+# Use this variable to specify encoding for DD STDOUT and STDERR
+export JZOS_OUTPUT_ENCODING=Cp1047
+# Use this variable to prevent JZOS from handling MVS operator commands
+export JZOS_ENABLE_MVS_COMMANDS=false
+# Use this variable to supply additional arguments to main
+#export JZOS_MAIN_ARGS=""
+
+# Configure JVM options
+IJO="-Xms16m -Xmx128m "
+IJO="$IJO -Djzos.home=${JZOS_HOME}"
+IJO="$IJO -Djava.endorsed.dirs=${LIB_HOME}/jwsdp_1.4"
+
+export IBM_JAVA_OPTIONS="$IJO "
+
+export JAVA_DUMP_HEAP=false
+export JAVA_PROPAGATE=YES
+export IBM_JAVA_ZOS_TDUMP=NO
