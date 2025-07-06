@@ -1,0 +1,1405 @@
+//LRSNQW68  JOB   (03009D520822,B095),'ZERO CELL CLOSE',USER=VIPSLIB,
+//       CLASS=0,NOTIFY=NSDVPT,MSGCLASS=H,MSGLEVEL=(1,1),REGION=8M
+//*
+//OUT1 OUTPUT DEST=MVS3083.NSDVPT,CLASS=X,JESDS=ALL
+//OUT2 OUTPUT DEST=MVS3083
+//********************************************************************
+//*  LRSNQW68: SETS OWNMD AND PDATE VARIABLE BASED ON SCHID SELECTED.*
+//*            SCRATCHES QW68CLS.NSI FILE.                           *
+//*            EXECUTES PROGRAM QW68Z01A WHICH SELECTS NSI MARKETS   *
+//*            (ZERO CELL RECORDS) PER CYCLE CLOSES TO PROCESS.      *
+//*            CREATES QW68CLS.NSI FILE.                             *
+//*            EXECUTES QW68Z01A CLIST TO BUILD SUBMISSION JCL FOR   *
+//*            EACH MARKET WHICH IS EXECUTED IN BATCH MODE.          *
+//*
+//* ABEND INSTRUCTIONS: IF THIS JOB ABENDS WITH A DATASET NOT FOUND  *
+//*                     IN STEP02 AT THE TSO COMMAND LINE ISSUE THE  *
+//*                     'TSO TASID' COMMAND. YOU WILL SEE THE ISPF   *
+//*                     FILES NEEDED FOR THE SYSPROC, ISPMLIB,       *
+//*                     ISPPLIB, ISPSLB, ISPTLIB, ISPLLIB AND SYSEXEC*
+//*                     DDNAMES. LOCATE AND INSERT  THE  MISSING DATA*
+//*                     SET AT THE PROPER LOCATION AND RE-RUN THE JOB*
+//*                                                                  *
+//********************************************************************
+//*
+//  SET     USER='NSI',
+//          DSL='PR',
+//          DPT='D372',
+//          NODE='NSI',
+//          ONE='1',
+#JI,ID=102
+//* REPRESENTS JANUARY - A NON-SYNC MONTH
+//          OWNMD='VIP08JA',
+//          PDATE='JAN08'
+#JI,ID=103
+//* REPRESENTS FEBRUARY - A SYNC MONTH
+//          OWNMD='VIP08FE',
+//          PDATE='FEB08'
+#JI,ID=105
+//* REPRESENTS MAY - A SYNC MONTH
+//          OWNMD='VIP08MY',
+//          PDATE='MAY08'
+#JI,ID=107
+//* REPRESENTS JULY - A SYNC MONTH
+//          OWNMD='VIP08JL',
+//          PDATE='JUL08'
+#JI,ID=110
+//* REPRESENTS OCTOBER - A NON-SYNC MONTH
+//          OWNMD='VIP07OC',
+//          PDATE='OCT07'
+#JI,ID=111
+//* REPRESENTS NOVEMBER - A SYNC MONTH
+//          OWNMD='VIP07NV',
+//          PDATE='NOV07'
+#JEND
+//*
+//STEP01   EXEC PGM=IEFBR14
+//DD1   DD DSN=NSIN.PR.D372.QW68CLS.&NODE..VIP&PDATE,
+//      DISP=(MOD,DELETE,DELETE),UNIT=SYSDA
+//DD2   DD DSN=NSIN.PR.D372.BATCHJCL,
+//      DISP=(MOD,DELETE,DELETE),UNIT=SYSDA
+//*
+//QW68RUN  EXEC PGM=QW68Z02A,PARM='&OWNMD&NODE',REGION=1M
+//STEPLIB  DD DSN=NSIN.PR.LINKLIB,DISP=SHR
+//W42NSI   DD DSN=&USER.V.&DSL..&DPT..&OWNMD..W42VCMD.KSD.MKT.DESC,
+//   DISP=SHR
+//W42NHS   DD DSN=&USER.V.&DSL..&DPT..NHSI.W42VCMD.KSD.MKT.DESC,
+//   DISP=SHR
+//NSIDMA   DD DSN=&USER.N.&DSL..&DPT..SOLAR.NSI.DMADCA.CLOSES.&PDATE,
+//  DISP=SHR
+//NHSIDMA  DD DSN=&USER.N.&DSL..&DPT..SOLAR.NHSI.DMADCA.CLOSES.&PDATE,
+//  DISP=SHR
+//QW68CLS  DD DSN=NSIN.PR.D372.QW68CLS.&NODE..VIP&PDATE,
+//        DCB=(RECFM=FB,LRECL=80),
+//        DISP=(,CATLG,DELETE),SPACE=(CYL,(5,5)),UNIT=SYSDA
+//SYSPRINT DD SYSOUT=*
+//*
+//COPYCTL  EXEC PGM=IEBCOPY
+//SYSPRINT DD SYSOUT=*
+//SYSUT3   DD UNIT=SYSDA,SPACE=(CYL,(1,1),RLSE)
+//SYSUT4   DD UNIT=SYSDA,SPACE=(CYL,(1,1),RLSE)
+//DDIN     DD DSN=NSIN.PR.CTLCARD,DISP=SHR
+//DDOUT    DD DSN=NSIN.PR.D372.BATCHJCL,DISP=(,CATLG,CATLG),
+//  UNIT=3390,SPACE=(CYL,(15,15,100),RLSE),
+//  DCB=(LRECL=80,BLKSIZE=0,RECFM=FB,DSORG=PO)
+//SYSIN DD *
+ COPY INDD=DDIN,OUTDD=DDOUT
+/*
+//*
+//COPYPRF1 EXEC PGM=IEBCOPY
+//SYSPRINT DD SYSOUT=*
+//SYSUT3   DD UNIT=SYSDA,SPACE=(CYL,(1,1),RLSE)
+//SYSUT4   DD UNIT=SYSDA,SPACE=(CYL,(1,1),RLSE)
+//DDIN     DD DSN=&&DDIN1,DISP=(,PASS),
+//  UNIT=SYSDA,SPACE=(CYL,(1,1,10),RLSE),
+//  DCB=(LRECL=80,BLKSIZE=0,RECFM=FB)
+//DDOUT    DD DSN=&&PROF,DISP=(,PASS),
+//  UNIT=SYSDA,SPACE=(CYL,(1,1,10),RLSE),
+//  DCB=(LRECL=80,BLKSIZE=0,RECFM=FB)
+//SYSIN DD *
+ COPY INDD=DDIN,OUTDD=DDOUT
+/*
+//COPYPRF2 EXEC PGM=IEBCOPY
+//SYSPRINT DD SYSOUT=*
+//SYSUT3   DD UNIT=SYSDA,SPACE=(CYL,(1,1),RLSE)
+//SYSUT4   DD UNIT=SYSDA,SPACE=(CYL,(1,1),RLSE)
+//DDIN     DD DSN=&&DDIN2,DISP=(,PASS),
+//  UNIT=SYSDA,SPACE=(CYL,(1,1,10),RLSE),
+//  DCB=(LRECL=80,BLKSIZE=0,RECFM=FB)
+//DDOUT    DD DSN=&&TABL,DISP=(,PASS),
+//  UNIT=SYSDA,SPACE=(CYL,(1,1,10),RLSE),
+//  DCB=(LRECL=80,BLKSIZE=0,RECFM=FB)
+//SYSIN DD *
+ COPY INDD=DDIN,OUTDD=DDOUT
+/*
+
+//STEP02   EXEC PGM=IKJEFT01,DYNAMNBR=30,
+//  PARM=('ISPSTART','CMD(QW68Z06A,&ONE)')
+//SYSPROC  DD DSN=ACNN.PR.D502.APPL.CLIST,DISP=SHR
+//         DD DSN=ACN1.SP.CLIST,DISP=SHR
+//         DD DSN=ACNN.PR.D502.LIB.CLIST,DISP=SHR
+//         DD DSN=ISP.SISPCLIB,DISP=SHR
+//         DD DSN=ISP.SISPEXEC,DISP=SHR
+//         DD DSN=ACN1.PR.D502.UCC7.REXX.EXEC,DISP=SHR
+//         DD DSN=ACN1.PR.D292.CA7.NS.CAICLIB,DISP=SHR
+//         DD DSN=ACN1.PR.D292.JCLCHECK.NS.CAICLIB,DISP=SHR
+//         DD DSN=ACN1.PR.D292.STARTOOL.CLIST,DISP=SHR
+//         DD DSN=ACN1.PR.D292.CA11.NS.CAICLIB,DISP=SHR
+//         DD DSN=EOY.SEOYCLIB,DISP=SHR
+//         DD DSN=SYS1.DGTCLIB,DISP=SHR
+//         DD DSN=SYS1.SERBCLS,DISP=SHR
+//         DD DSN=SYS1.SBPXEXEC,DISP=SHR
+//         DD DSN=ACNN.PR.D502.FILEAID.CLIST,DISP=SHR
+//ISPMLIB  DD DSN=ACNN.PR.D502.LIB.ISPMLIB,DISP=SHR
+//         DD DSN=ACN1.PR.D292.STARTOOL.MSGS,DISP=SHR
+//         DD DSN=ISP.SISPMENU,DISP=SHR
+//         DD DSN=ISF.SISFMLIB,DISP=SHR
+//         DD DSN=ACN1.ISRMLIB,DISP=SHR
+//         DD DSN=SYS1.DFQMLIB,DISP=SHR
+//         DD DSN=SYS1.DGTMLIB,DISP=SHR
+//         DD DSN=ACNN.PR.D502.NDM.ISP.ISPMLIB,DISP=SHR
+//         DD DSN=EOY.SEOYMENU,DISP=SHR
+//         DD DSN=SYS1.SBPXMENU,DISP=SHR
+//ISPPLIB  DD DSN=ACNN.PR.D502.LIB.ISPPLIB,DISP=SHR
+//         DD DSN=ACN1.ISRPLIB,DISP=SHR
+//         DD DSN=ISP.SISPPENU,DISP=SHR
+//         DD DSN=ISF.SISFPLIB,DISP=SHR
+//         DD DSN=ACN1.PR.D292.STARTOOL.PANELS,DISP=SHR
+//         DD DSN=SYS1.DFQPLIB,DISP=SHR
+//         DD DSN=SYS1.DGTPLIB,DISP=SHR
+//         DD DSN=ACNN.PR.D502.NDM.ISP.ISPPLIB,DISP=SHR
+//         DD DSN=ACN1.PR.D502.SAR.ISPPLIB,DISP=SHR
+//         DD DSN=ACN1.PR.D292.CA7.NS.CAIISPP,DISP=SHR
+//         DD DSN=EOY.SEOYPENU,DISP=SHR
+//         DD DSN=SYS1.SBPXPENU,DISP=SHR
+//ISPSLIB  DD DSN=NSIN.PR.D372.BATCHJCL,DISP=SHR
+//         DD DSN=ACNN.PR.D502.LIB.ISPSLIB,DISP=SHR
+//         DD DSN=ACN1.PR.D292.STARTOOL.SKELS,DISP=SHR
+//         DD DSN=ACN1.ISRSLIB,DISP=SHR
+//         DD DSN=ISP.SISPSLIB,DISP=SHR
+//         DD DSN=ISP.SISPSENU,DISP=SHR
+//         DD DSN=SYS1.DGTSLIB,DISP=SHR
+//ISPTLIB  DD DSN=ACNN.PR.D502.LIB.ISPTLIB,DISP=SHR
+//         DD DSN=ACNN.PR.D502.QUICKREF.TLIB,DISP=SHR
+//         DD DSN=ISP.SISPTENU,DISP=SHR
+//         DD DSN=ISF.SISFTLIB,DISP=SHR
+//         DD DSN=ACNN.PR.D502.FILEAID.ISPTLIB,DISP=SHR
+//         DD DSN=ACN1.PR.D292.CA7.NS.CAIISPT,DISP=SHR
+//         DD DSN=ACN1.PR.D502.SAR.ISPTLIB,DISP=SHR
+//         DD DSN=EOY.SEOYTENU,DISP=SHR
+//         DD DSN=SYS1.DGTTLIB,DISP=SHR
+//         DD DSN=SYS1.SBPXTENU,DISP=SHR
+//ISPLLIB  DD DSN=ACNN.PR.D502.LIB.ISPLLIB,DISP=SHR
+//         DD DSN=ACN1.PR.D292.DB2.NS.DB2F.SDSNLOAD,DISP=SHR
+//         DD DSN=ACNN.PR.D502.NDM.LINKLIB,DISP=SHR
+//         DD DSN=ACN1.TS.PANLOAD,DISP=SHR
+//         DD DSN=SYS1.DFQLLIB,DISP=SHR
+//         DD DSN=SYS1.DGTLLIB,DISP=SHR
+//ISPPROF  DD DSN=*.COPYPRF1.DDOUT,DISP=(OLD,DELETE)
+//ISPTABL  DD DSN=*.COPYPRF2.DDOUT,DISP=(OLD,DELETE)
+//SYSEXEC  DD DSN=ACN1.SP.REXX.EXEC,DISP=SHR
+//* WORK DATASETS FOR ISPF
+//ISPLST1 DD DISP=NEW,UNIT=SYSDA,SPACE=(CYL,(1,3)),
+// DCB=(LRECL=121,BLKSIZE=1210,RECFM=FBA)
+//ISPLST2 DD DISP=NEW,UNIT=SYSDA,SPACE=(CYL,(1,3)),
+// DCB=(LRECL=121,BLKSIZE=1210,RECFM=FBA)
+//ISPCTL0 DD DISP=NEW,UNIT=SYSDA,SPACE=(CYL,(1,5)),
+// DCB=(LRECL=80,BLKSIZE=3120,RECFM=FB)
+//ISPCTL1 DD DISP=NEW,UNIT=SYSDA,SPACE=(CYL,(1,5)),
+// DCB=(LRECL=80,BLKSIZE=3120,RECFM=FB)
+//ISPCTL2 DD DISP=NEW,UNIT=SYSDA,SPACE=(CYL,(1,5)),
+// DCB=(LRECL=80,BLKSIZE=3120,RECFM=FB)
+//ISPWRK1 DD DISP=NEW,UNIT=SYSDA,SPACE=(CYL,(1,3)),
+// DCB=(LRECL=256,BLKSIZE=2560,RECFM=FB)
+//ISPWRK2 DD DISP=NEW,UNIT=SYSDA,SPACE=(CYL,(1,3)),
+// DCB=(LRECL=256,BLKSIZE=2560,RECFM=FB)
+//ISPLOG  DD SYSOUT=*,DCB=(LRECL=120,BLKSIZE=2400,DSORG=PS,RECFM=FB)
+//ISPLIST DD SYSOUT=*,DCB=(LRECL=121,BLKSIZE=1210,DSORG=PS,RECFM=FBA)
+//SYSPRINT DD SYSOUT=*
+//SYSTSPRT DD SYSOUT=*
+//SYSUDUMP DD SYSOUT=*
+//SYSTSIN  DD DUMMY
+//*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Procedure Language 
+
+1TWE8: PROC OPTIONS(MAIN) REORDER;
+ /*------------------------------------------------------------------*/
+ /*------------------------------------------------------------------*/
+ /*                      P  R  O  L  O  G  U  E                      */
+ /*------------------------------------------------------------------*/
+ /*                                                                                    */
+ /*     PROGRAM: TWE8                                                */
+ /*                                                                                   */
+ /*     AUTHOR: VINCENT TAYLOR                              */
+ /*                                                                                   */
+ /*     TITLE: TWE8 WEIGHTED ESTIMATED STANDARD ERROR EXTRACT PROGRAM   */
+ /*                                                                                                                                                */
+ /*     LOGIC: READ DATASET W42 AS INPUT AND EXTRACT NSI AND LPM                      */
+ /*            MARKET DATA.                                                                                                         */
+ /*                                                                                                                                                */
+ /*     INPUT: THE FOLLOWING FILES:                                                                                    */
+ /*                                                                                                                                                */
+ /*     OUTPUT: FILE CONTAIN NSI AND LPM MARKET VALUES.                                         */
+ /*                                                                                                                                                */
+ /*------------------------------------------------------------------*/
+ /*               M A I N T A I N A N C E     L O G           */
+ /*------------------------------------------------------------------*/
+ /*  DATE  |PROD/VERSN|PRGMR|AREA HD|        CHANGE DESCRIPTION      */
+ /*--------|----------|-----|-------|--------------------------------*/
+ /*05/23/07| TWE8Z01A | VPT | MB    |   ********* NEW **********                           */
+ /*--------|----------|-----|-------|---------------------------------*/
+ /*        |          |     |       |                                             */
+ /*------------------------------------------------------------------*/
+
+ /*-------------------------------------------------------*/                                   
+ /* INPUT/OUTPUT FILE DECLARATIONS */                                   
+ /*-------------------------------------------------------*/                                   
+ DCL 1 W42D_REC,
+ %INCLUDE SW4202C8; /* BASIC MARKET DESCRIPTOR FILE */
+
+ DCL 1 DMA_IREC,
+       2  DMA_CODE             CHAR (03),
+       2  FILLER               CHAR (77)    init (' ');
+
+ /*-------------------------------------------------------*/                                   
+ /* INPUT/OUTPUT FILE DECLARATIONS */                                   
+ /*-------------------------------------------------------*/                                   
+ DCL SYSPRINT FILE STREAM OUTPUT PRINT ENV(V BLKSIZE (129)
+     BUFFERS(2));
+ DCL W42VCMD FILE RECORD KEYED SEQL INPUT ENV (VSAM);                   
+ DCL WE68NSI FILE RECORD OUTPUT SEQUENTIAL ENV(CONSECUTIVE BUFFERS(2));
+ DCL WE68LPM FILE RECORD OUTPUT SEQUENTIAL ENV(CONSECUTIVE BUFFERS(2));
+
+ /*----------------------------------------------*/                                    
+ /* INDPENDENT VARIABLES          */                                    
+ /*----------------------------------------------*/                                    
+ DCL PLIDUMP                  BUILTIN;
+ DCL W42VCMD_EOF              BIT(1)         INIT('1'B);
+
+ /*-------------------------------*/                                    
+ /* ON CONDITIONS        */                                    
+ /*-------------------------------*/                                    
+
+ ON ERROR
+    BEGIN;
+      CALL PLIDUMP('NTNFSH','PLIDUMP ON UNIT WITH PUT DATA');
+      GOTO EOJ;
+    END;
+
+ ON ENDFILE (W42VCMD)
+    BEGIN;
+      W42VCMD_EOF = '0'B;
+    END;
+
+ OPEN FILE (WE68NSI),
+      FILE (WE68LPM),
+      FILE (SYSPRINT),
+      FILE (W42VCMD);
+
+ /*-------------------------------*/                                    
+ /* MAIN PROCESSING  */                                    
+ /*-------------------------------*/                                    
+ DO WHILE (W42VCMD_EOF = '1'B);
+    READ FILE (W42VCMD) INTO (W42D_REC);
+
+    IF W42D_REC.MARKET_TYPE = '1' THEN
+       DO;
+         DMA_IREC.DMA_CODE = MARKET_CODE;
+         WRITE FILE (WE68NSI) FROM (DMA_IREC);
+       END;
+
+    IF W42D_REC.MARKET_TYPE = '2' THEN
+       DO;
+         DMA_IREC.DMA_CODE = MARKET_CODE;
+         WRITE FILE (WE68LPM) FROM (DMA_IREC);
+       END;
+ END;
+
+ EOJ:
+
+ CLOSE FILE (WE68NSI),
+       FILE (WE68LPM),
+       FILE (SYSPRINT),
+       FILE (W42VCMD);
+ END;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1.	TWE9 PL/1 routine.
+
+1TWE9: PROC(PARM_STR) OPTIONS(MAIN) REORDER;                            00010099
+ /*------------------------------------------------------------------*/ 00020014
+ /*------------------------------------------------------------------*/ 00040014
+ /*                      P  R  O  L  O  G  U  E                      */ 00050014
+ /*------------------------------------------------------------------*/ 00060014
+ /*                                                                  */ 00070014
+ /*     PROGRAM: TWE9                                                */ 00080099
+ /*                                                                  */ 00090014
+ /*     AUTHOR: VINCENT TAYLOR                                       */ 00100092
+ /*                                                                  */ 00110014
+ /*     TITLE: WESE Weighted Estimated Standard Error XML Report     */ 00120068
+ /*                                                                  */ 00130014
+ /*     LOGIC: Read Dataset specified as input and convert to        */ 00160014
+ /*            XML format.                                           */ 00170014
+ /*                                                                  */ 00180014
+ /*     INPUT: THE FOLLOWING FILES:                                  */ 00190092
+ /*                                                                  */ 00200014
+ /*     OUTPUT: An XML generated file that is fed to frontend system */ 00210014
+ /*                                                                  */ 00220014
+ /*                       1         2                                */ 00230014
+ /*  PARM VALUE: 123456789012345678901                               */ 00240014
+ /*              JUL,XXXX,TS,D822,101                                */ 00250073
+ /*              MTH,YEAR,XX,DEPT,MKT                                */ 00260073
+ /*------------------------------------------------------------------*/ 00270014
+ /*               M A I N T A I N A N C E     L O G                  */ 00280014
+ /*------------------------------------------------------------------*/ 00290014
+ /*  DATE  |PROD/VERSN|PRGMR|AREA HD|        CHANGE DESCRIPTION      */ 00300014
+ /*--------|----------|-----|-------|--------------------------------*/ 00310014
+ /*05/23/07| TWE9Z01A | VPT | MB    |   ********* NEW **********     */ 00320099
+ /*--------|----------|-----|-------|--------------------------------*/ 00330014
+ /*        |          |     |       |                                */ 00340014
+ /*------------------------------------------------------------------*/ 00350014
+ /*       M A C R O S   T O   B E    I N C L U D E D                 */ 00360014
+ /*------------------------------------------------------------------*/ 00370014
+ /* SXFILLM1 MACRO ADDS NUMBERS TO FILLER TO MAKE THEM UNIQUE        */ 00380014
+                                                                        00390014
+  %INCLUDE SXFILLM1;                                                    00400014
+  %INCLUDE SXSORTM2;                                                    00410014
+                                                                        00420014
+ /*----------------------------*/                                       00430014
+ /* INPUT/OUTPUT STRUCTURES    */                                       00440014
+ /*----------------------------*/                                       00450014
+                                                                        00460014
+ DCL 1 W42_REC,                                                         00470014
+ %INCLUDE SW4202C8;  /* BASIC MARKET DESCRIPTOR FILE */                 00480014
+ DCL V40_RECORD                              CHAR(84) INIT(' ');        00490099
+                                                                        00491099
+ DCL 1 V40_REC,                                                         00500099
+       2 MKT_CODE                            CHAR(03),                  00510099
+       2 FILLER                              CHAR(10),                  00520028
+       2 DESCRIPTION                         CHAR(24),                  00530028
+       2 ADAY_SSIZE                          PIC'9999',                 00540028
+       2 FILLER                              CHAR(04),                  00550028
+       2 WE69                                CHAR(04),                  00560068
+       2 FILLER                              CHAR(35)  INIT (' ');      00570028
+                                                                        00571099
+                                                                        00580014
+ /*----------------------------*/                                       00590014
+ /* MARKET INPUT RECORD LAYOUT */                                       00600014
+ /*----------------------------*/                                       00610014
+ DCL 1 MKT_IREC(500),                                                   00730020
+       2 MKT_CODE                            CHAR(3),                   00740028
+       2 SERVICE                             CHAR(1);                   00750056
+                                                                        00756050
+ /*-----------------------*/                                            00760014
+ /*  XML DATA STRUCTURE   */                                            00770014
+ /*-----------------------*/                                            00780014
+  DCL 1 DEMOG_TOP,                                                      00780286
+        2 FILLER                             CHAR(15)   INIT            00780386
+        ('<demographicID>'),                                            00780486
+        2 DEMOGRAPHICID                      CHAR(03),                  00780586
+        2 FILLER                             CHAR(16)   INIT            00780687
+        ('</demographicID>'),                                           00780787
+        2 FILLER                             CHAR(123)  INIT (' ');     00780887
+                                                                        00780986
+  DCL 1 DN_REC,                                                         00781076
+        2 FILLER                             CHAR(10)   INIT            00782075
+        ('<demoName>'),                                                 00783075
+        2 DEMO_NAME                          CHAR(20),                  00784078
+        2 FILLER                             CHAR(11)   INIT            00785075
+        ('</demoName>'),                                                00786078
+        2 FILLER                             CHAR(116)  INIT (' ');     00786178
+                                                                        00810086
+  DCL 1 LD_TOP,                                                         00820086
+        2 FILLER                             CHAR(17)   INIT            00830086
+        ('<LMRSDemographic>'),                                          00840086
+        2 FILLER                             CHAR(140)  INIT(' ');      00850086
+                                                                        00950014
+  DCL 1 MARKET_REC,                                                     00960014
+        2 FILLER                             CHAR(22)   INIT            00990028
+          ('<reportingGeographyID>'),                                   01000014
+        2 REPORTINGGEOGRAPHYID               PIC'999',                  01010070
+        2 FILLER                             CHAR(23)   INIT            01020028
+          ('</reportingGeographyID>'),                                  01030014
+        2 FILLER                             CHAR(19)   INIT            01040028
+          ('<measurementPeriod>'),                                      01050014
+        2 FILLER                             CHAR(07)   INIT            01060028
+          ('<month>'),                                                  01070014
+        2 MONTHDATE                          CHAR(06),                  01080076
+        2 FILLER                             CHAR(08)   INIT            01090028
+          ('</month>'),                                                 01100014
+        2 FILLER                             CHAR(06)   INIT            01110028
+          ('<year>'),                                                   01120014
+        2 YEARDATE                           CHAR(04),                  01130028
+        2 FILLER                             CHAR(07)   INIT            01140028
+          ('</year>'),                                                  01150014
+        2 FILLER                             CHAR(20)   INIT            01160028
+          ('</measurementPeriod>'),                                     01170085
+        2 FILLER                             CHAR(32)   INIT (' ');     01180085
+                                                                        01190014
+  DCL 1 SIZE_REC,                                                       01190177
+        2 FILLER                             CHAR(06)   INIT            01190277
+        ('<size>'),                                                     01190377
+        2 SIZE                               PIC'9999',                 01190477
+        2 FILLER                             CHAR(07)   INIT            01190577
+        ('</size>'),                                                    01190677
+        2 FILLER                             CHAR(140)  INIT(' ');      01190777
+                                                                        01190877
+  DCL 1 TOP_REC,                                                        01190975
+        2 FILLER                             CHAR(38)   INIT            01191075
+      ('<?xml version="1.0" encoding="UTF-8"?>'),                       01191175
+        2 FILLER                             CHAR(119)  INIT (' ');     01191277
+                                                                        01191375
+  DCL 1 TS_ENV_REC,                                                     01191475
+        2 FILLER                             CHAR(50)   INIT            01191582
+      ('<LMRSWeseResponse xmlns="local:nielsenmedia:lmrs" '),           01191677
+        2 FILLER                             CHAR(54)   INIT            01191775
+      ('xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'),       01191875
+        2 FILLER                             CHAR(53)   INIT (' ');     01191982
+                                                                        01195075
+  DCL 1 WD_TOP,                                                         01331077
+        2 FILLER                             CHAR(13)   INIT            01331198
+        ('<LPMWeseDemo>'),                                              01331299
+        2 FILLER                             CHAR(144)  INIT(' ');      01331398
+                                                                        01331477
+  DCL 1 WESEVAl_REC,                                                    01331593
+        2 FILLER                             CHAR(09)   INIT            01331675
+        ('<weseVal>'),                                                  01331799
+        2 WESEVAL                            char(04),                  01331893
+        2 FILLER                             CHAR(10)   INIT            01331975
+        ('</weseVal>'),                                                 01332099
+        2 FILLER                             CHAR(134)  INIT(' ');      01333077
+                                                                        04690014
+  DCL 1 WR_TOP,                                                         04690177
+        2 FILLER                             CHAR(14)   INIT            04690277
+        ('<WESEResponse>'),                                             04690378
+        2 FILLER                             CHAR(143)  INIT(' ');      04690477
+                                                                        04690577
+  DCL 1 WESE_ITEM (32)                       CHAR(20) INIT              04691075
+  ('TOTAL PERSONS(2+)','TOTAL PERSONS(18+)','TOTAL PERSONS(12-24)',     04692079
+  'TOTAL PERSONS(12-34)','TOTAL PERSONS(18-34)','TOTAL PERSONS(18-49)', 04693079
+  'TOTAL PERSONS(21-49)','TOTAL PERSONS(25-54)','TOTAL PERSONS(35+)',   04694079
+  'TOTAL PERSONS(35-64)','TOTAL PERSONS(50+)','WOMEN:TOTAL(18+)',       04695079
+  'WOMEN:12-24','WOMEN:18-34','WOMEN:18-49','WOMEN:21-49','WOMEN:25-49',04696079
+  'WOMEN:25-54','WOMEN:25-64','WOMEN:50+','WORKING WOMEN',              04697079
+  'MEN:TOTAL(18+)','MEN:18-34','MEN:18-49','MEN:21-49','MEN:25-49',     04698079
+   'MEN:25-54','MEN:25-64','TEENS:TOTAL(12-17)','TEENS:GIRLS',          04699075
+   'CHILDREN:TOTAL(2-11)','CHILDREN:6-11');                             04699175
+                                                                        04699277
+  DCL 1 WESE_DEMO (32)                       CHAR(3) INIT               04699386
+  ('106','139','119','120','135','136','142','148','154','153','157',   04699486
+   '045','027','041','042','047','051','052','053','060','023','081',   04699586
+   '077','078','083','087','088','089','117','025','024','002');        04699690
+                                                                        04699786
+ /*-----------------------*/                                            04700014
+ /*  END XML HEADINGS     */                                            04710014
+ /*-----------------------*/                                            04720014
+  DCL 1 DEMOG_BOT,                                                      04720186
+        2 FILLER                             CHAR(16)   INIT            04720286
+        ('</demographicID>'),                                           04720386
+        2 FILLER                             CHAR(141)  INIT(' ');      04720486
+                                                                        04720586
+  DCL 1 LMRSWR_BOT,                                                     04720677
+        2 FILLER                             CHAR(19)   INIT            04720781
+      ('</LMRSWeseResponse>'),                                          04720877
+        2 FILLER                             CHAR(138)  INIT(' ');      04720981
+                                                                        04721677
+  DCL 1 LD_BOT,                                                         04721777
+        2 FILLER                             CHAR(18)   INIT            04721875
+      ('</LMRSDemographic>'),                                           04721975
+        2 FILLER                             CHAR(139)  INIT(' ');      04722077
+                                                                        04725018
+  DCL 1 WD_BOT,                                                         04726077
+        2 FILLER                             CHAR(14)   INIT            04727098
+      ('</LPMWeseDemo>'),                                               04728099
+        2 FILLER                             CHAR(143)  INIT(' ');      04729098
+                                                                        04730077
+  DCL 1 WR_BOT,                                                         04740077
+        2 FILLER                             CHAR(15)   INIT            04750077
+        ('</WESEResponse>'),                                            04760078
+        2 FILLER                             CHAR(142)  INIT(' ');      04770077
+ /*----------------------------*/                                       04830014
+ /* INPUT/OUTPUT STRUCTURES    */                                       04840014
+ /*----------------------------*/                                       04850014
+ DCL W42VCMD  FILE RECORD INPUT SEQUENTIAL ENV(CONSECUTIVE BUFFERS(2)); 04860014
+ DCL V40VBPL  FILE RECORD INPUT SEQUENTIAL ENV(CONSECUTIVE BUFFERS(2)); 04870014
+ DCL WE69FTP  FILE RECORD OUTPUT SEQUENTIAL ENV(CONSECUTIVE BUFFERS(2));04890068
+ DCL WE69XML  FILE RECORD OUTPUT SEQUENTIAL ENV(CONSECUTIVE BUFFERS(2));04891068
+ DCL SYSPRINT FILE STREAM OUTPUT PRINT ENV(V BLKSIZE (129) BUFFERS(10));04900014
+                                                                        04910014
+1/*----------------------------*/                                       04920014
+ /* BUILIT-IN FUNCTIONS        */                                       04930014
+ /*----------------------------*/                                       04940014
+ DCL DATETIME BUILTIN;                                                  04960014
+ DCL INDEX    BUILTIN;                                                  04970015
+ DCL PLIDUMP  BUILTIN;                                                  04990015
+ DCL SUBSTR   BUILTIN;                                                  05000015
+                                                                        05030014
+ /*----------------------------*/                                       05040014
+ /* INDEPENDENT VARIABLES      */                                       05050014
+ /*----------------------------*/                                       05060014
+ DCL BUILD_FTP1                CHAR(80)      INIT('sendsite');          05070031
+ DCL BUILD_FTP2                CHAR(80)      INIT('');                  05080031
+ DCL BUILD_FTP3                CHAR(80)      INIT('quit');              05090015
+ DCL CNT                       FIXED BIN(31) INIT(0);                   05100014
+ DCL CREATE_IND                CHAR(3)       INIT('');                  05120015
+ DCL CYCLE                     CHAR(3)       INIT('');                  05130015
+ DCL CYC_MTH                   CHAR(4)       INIT('');                  05140076
+ DCL CYC_YEAR                  CHAR(4)       INIT('');                  05141036
+ DCL DEPT                      CHAR(04)      INIT('');                  05150015
+ DCL DMA_CODE                  CHAR(03);                                05150120
+ DCL PDMA_CODE                 PIC'999'      DEF DMA_CODE POS(1);       05150265
+ DCL ENUM                      FIXED BIN(31) INIT(32);                  05151018
+ DCL HIT                       BIT(1);                                  05152039
+ DCL I                         FIXED BIN(31) INIT(0);                   05170014
+ DCL J                         FIXED BIN(31) INIT(0);                   05180014
+ DCL MONTH_ABBREV(12)          CHAR(03)      INIT                       05190015
+                 ('JAN','FEB','MAR','APR','MAY','JUN',                  05200014
+                  'JUL','AUG','SEP','OCT','NOV','DEC');                 05210014
+ DCL MONTH_LONG(12)             CHAR(09)     INIT                       05220015
+                 ('January','February','March','April','May','June',    05230014
+                  'July','August','September','October','November',     05240014
+                  'December');                                          05250014
+ DCL NAME                      CHAR(31)      VARYING;                   05270015
+ DCL NO                        BIT(1)        INIT('0'B);                05280015
+ DCL PARM_CYC                  CHAR(3)       INIT('');                  05290015
+ DCL PARM_DEPT                 CHAR(4)       INIT('');                  05300015
+ DCL PARM_DSL                  CHAR(2)       INIT('');                  05310015
+ DCL PARM_LEN                  FIXED BIN(15);                           05320014
+ DCL PARM_MTH                  CHAR(3)       INIT('');                  05330015
+ DCL PARM_MKT                  CHAR(3)       INIT('');                  05331060
+ DCL PARM_STR                  CHAR(100)     VARYING;                   05340015
+ DCL PARM_YEAR                 CHAR(4)       INIT('');                  05350015
+ DCL SET_POS                   FIXED DEC(4)  INIT(0);                   05351099
+ DCL SRV_TYPE                  CHAR(1)       INIT(' ');                 05360018
+ DCL SUM_AFTER                 FIXED BIN(31) INIT(0);                   05371015
+ DCL TODAYS_DATE               CHAR(16)      INIT('');                  05390015
+ DCL W42VCMD_EOF               BIT(1)        INIT('1'B);                05400015
+ DCL V40VBPL_EOF               BIT(1)        INIT('1'B);                05410015
+ DCL YES                       BIT(1)        INIT('1'B);                05420015
+ /*----------------------------*/                                       05440014
+ /* ON CONDITIONS              */                                       05450014
+ /*----------------------------*/                                       05460014
+                                                                        05470014
+ ON ERROR                                                               05480014
+    BEGIN;                                                              05490014
+    CALL PLIDUMP('NTNFSH','PLIDUMP ON UNIT WITH PUT DATA');             05500014
+    GOTO ENDJOB;                                                        05510021
+    END;                                                                05520014
+                                                                        05530014
+  ON ENDFILE(W42VCMD)                                                   05540014
+   BEGIN;                                                               05550014
+    W42VCMD_EOF = NO;                                                   05560014
+   END;                                                                 05570014
+                                                                        05580014
+  ON ENDFILE(V40VBPL)                                                   05590014
+   BEGIN;                                                               05600014
+    V40VBPL_EOF = NO;                                                   05610014
+   END;                                                                 05620014
+                                                                        05630014
+ OPEN FILE (W42VCMD),                                                   05640014
+      FILE (V40VBPL),                                                   05650014
+      FILE (WE69FTP),                                                   05670068
+      FILE (WE69XML),                                                   05671068
+      FILE (SYSPRINT);                                                  05680014
+                                                                        05690014
+ /*----------------------------*/                                       05700014
+ /* MAIN PROCESSING            */                                       05710014
+ /*----------------------------*/                                       05720014
+                                                                        05730014
+ CALL PROCESS_INIT;                                                     05740014
+                                                                        05750014
+ /*----------------------------------------------*/                     05760020
+ /* POPULATE THE MKT_IREC TABLE WITH NSI AND LPM */                     05770020
+ /* MARKET CODE AND SERVICE TYPE VALUES. -       */                     05780020
+ /*----------------------------------------------*/                     05790020
+ DO WHILE (W42VCMD_EOF = YES);                                          05800014
+    READ FILE (W42VCMD) INTO (W42_REC);                                 05810014
+    IF W42_REC.MARKET_TYPE = '1' | W42_REC.MARKET_TYPE = '2' THEN       05820014
+       DO;                                                              05830014
+          CNT = CNT + 1;                                                05840014
+          MKT_IREC(CNT).MKT_CODE = W42_REC.MARKET_CODE;                 05850020
+          MKT_IREC(CNT).SERVICE  = W42_REC.MARKET_TYPE;                 05860020
+       END;                                                             05870014
+ END;                                                                   05880014
+                                                                        05890014
+ DO WHILE(V40VBPL_EOF = YES);                                           05910033
+    READ FILE (V40VBPL) INTO (V40_RECORD);                              05920099
+                                                                        05920399
+    DO I = 1 TO CNT;                                                    05921033
+    /* CHECK TO SEE IF V40 MKT IS FOUND IN MKT_IREC TABLE */            05930033
+    IF SUBSTR(V40_RECORD,1,3) = MKT_IREC(I).MKT_CODE &                  05940099
+       SUBSTR(V40_RECORD,1,3) = PARM_MKT THEN                           05941099
+       DO;                                                              05950033
+         IF INDEX (V40_RECORD,'DESIGNATED MARKET AREA') > 0 THEN        05960099
+            DO;                                                         05961039
+               READ FILE (V40VBPL) INTO (V40_RECORD);                   05970099
+               HIT = YES;                                               05970239
+            END;                                                        05970339
+         IF INDEX (V40_RECORD,'TOTAL TV HOUSEHOLDS') > 0 & HIT THEN     05980099
+            DO;                                                         05991039
+               CALL POPULATE_V40REC;                                    05991199
+               DMA_CODE = V40_REC.MKT_CODE;                             05991499
+               PDMA_CODE = PDMA_CODE + 400;                             05991569
+               SRV_TYPE = MKT_IREC(I).SERVICE;                          05991635
+               REPORTINGGEOGRAPHYID = PDMA_CODE;                        05991769
+               MONTHDATE = CYC_MTH || SUBSTR(CYC_YEAR,3,2);             05991876
+               YEARDATE = CYC_YEAR;                                     05991937
+               DN_REC.DEMO_NAME = 'TOTAL TV HOUSEHOLDS';                05992076
+               DEMOG_TOP.DEMOGRAPHICID = '162';                         05993086
+               SIZE_REC.SIZE = V40_REC.ADAY_SSIZE;                      05994099
+               WESEVAL_REC.WESEVAL = V40_REC.WE69;                      05995099
+               /* TOP XMLSCHEMA INFORMATION */                          05995184
+               WRITE FILE (WE69XML) FROM (TOP_REC);                     05996084
+               WRITE FILE (WE69XML) FROM (TS_ENV_REC);                  05997084
+               WRITE FILE (WE69XML) FROM (WR_TOP);                      05998084
+               WRITE FILE (WE69XML) FROM (MARKET_REC);                  05999084
+               WRITE FILE (WE69XML) FROM (WD_TOP);                      06000088
+               WRITE FILE (WE69XML) FROM (LD_TOP);                      06010088
+               WRITE FILE (WE69XML) FROM (DEMOG_TOP);                   06011088
+               WRITE FILE (WE69XML) FROM (DN_REC);                      06012088
+               WRITE FILE (WE69XML) FROM (LD_BOT);                      06013088
+               WRITE FILE (WE69XML) FROM (SIZE_REC);                    06014088
+               WRITE FILE (WE69XML) FROM (WESEVAL_REC);                 06015093
+               WRITE FILE (WE69XML) FROM (WD_BOT);                      06016088
+               /* BUILD XML OUTPUT STRUCTURE */                         06020033
+               CALL LOAD_XML_STRUCT;                                    06030033
+               HIT = NO;                                                06031139
+            END;                                                        06040033
+       END;                                                             06050033
+    END; /* END ITERATIVE DO */                                         06051033
+ END;    /* END DO WHILE */                                             06060033
+                                                                        06080014
+ PUT SKIP EDIT                                                          06090014
+     ('SOURCE/CYCLE/YEAR                      : ',                      06100014
+      '         '||SRV_TYPE||'/'||PARM_CYC||'/'||PARM_YEAR)             06110018
+     (A,COLUMN (51),A,A,A,A,A);                                         06120014
+                                                                        06121018
+ CALL CREATE_FTP_FILE;                                                  06130014
+                                                                        06140014
+1/*----------------------------*/                                       06170014
+ /* MAIN PROCESSING            */                                       06180014
+ /*----------------------------*/                                       06190014
+ PROCESS_INIT: PROC;                                                    06200014
+                                                                        06210014
+  TODAYS_DATE = SUBSTR(DATETIME,5,2)||'/'||SUBSTR(DATETIME,7,2)||'/'||  06240014
+                SUBSTR(DATETIME,1,4)||' '||SUBSTR(DATETIME,9,2)||':'||  06250014
+                SUBSTR(DATETIME,11,2);                                  06260014
+  PARM_CYC  = SUBSTR(PARM_STR,1,3);                                     06280037
+  PARM_YEAR = SUBSTR(PARM_STR,5,4);                                     06290037
+  CYC_YEAR  = PARM_YEAR;                                                06291037
+  PARM_DSL  = SUBSTR(PARM_STR,10,2);                                    06300037
+  PARM_DEPT = SUBSTR(PARM_STR,13,4);                                    06310037
+  PARM_MKT  = SUBSTR(PARM_STR,18,3);                                    06311062
+                                                                        06320014
+  DO I = 1 TO 12;                                                       06330014
+     IF PARM_CYC = MONTH_ABBREV(I) THEN                                 06340014
+        CYC_MTH = MONTH_ABBREV(I)||'-';                                 06351076
+  END;                                                                  06360014
+ END PROCESS_INIT;                                                      06370014
+                                                                        06380014
+1/*----------------------------*/                                       06390099
+ /* POPULATE V40REC            */                                       06400099
+ /*----------------------------*/                                       06410099
+ POPULATE_V40REC: PROC;                                                 06420099
+  SET_POS = INDEX (V40_RECORD,'TOTAL TV HOUSEHOLDS');                   06421299
+  IF SET_POS = 14 THEN                                                  06421799
+     DO;                                                                06421899
+        V40_REC.MKT_CODE = SUBSTR(V40_RECORD,1,3);                      06421999
+        V40_REC.ADAY_SSIZE = SUBSTR(V40_RECORD,36,4);                   06422099
+        V40_REC.WE69 = SUBSTR(V40_RECORD,42,4);                         06422199
+     END;                                                               06422299
+  IF SET_POS = 16 THEN                                                  06422399
+     DO;                                                                06423099
+        V40_REC.MKT_CODE = SUBSTR(V40_RECORD,1,3);                      06424099
+        V40_REC.ADAY_SSIZE = SUBSTR(V40_RECORD,38,4);                   06426099
+        V40_REC.WE69 = SUBSTR(V40_RECORD,46,4);                         06427099
+     END;                                                               06428099
+ END POPULATE_V40REC;                                                   06430099
+                                                                        06430199
+1/*------------------------*/                                           06431099
+ /* LOAD V40REC            */                                           06432099
+ /*------------------------*/                                           06433099
+ LOAD_V40REC: PROC;                                                     06434099
+  IF SET_POS = 14 THEN                                                  06439099
+     DO;                                                                06439199
+        V40_REC.ADAY_SSIZE = SUBSTR(V40_RECORD,36,4);                   06439399
+        V40_REC.WE69 = SUBSTR(V40_RECORD,42,4);                         06439499
+     END;                                                               06439599
+  IF SET_POS = 16 THEN                                                  06439699
+     DO;                                                                06439799
+        V40_REC.ADAY_SSIZE = SUBSTR(V40_RECORD,38,4);                   06439999
+        V40_REC.WE69 = SUBSTR(V40_RECORD,46,4);                         06440099
+     END;                                                               06441099
+ END LOAD_V40REC;                                                       06442099
+                                                                        06450099
+1/*-----------------------------------------------------------------*/  06710073
+ /*              LOAD ALL DATA INTO THE XML FORMAT                  */  06720049
+ /*-----------------------------------------------------------------*/  06730073
+ LOAD_XML_STRUCT: PROC;                                                 06740014
+                                                                        06781014
+ /*----------------------------------------------------------*/         06781173
+ /* NUMBER OF RECORDS UNDER TOTAL TV HOUSEHOLDS REPORT LABEL */         06782073
+ /*----------------------------------------------------------*/         06783073
+  DO J = 1 TO ENUM;                                                     06890018
+     READ FILE (V40VBPL) INTO (V40_RECORD);                             06891099
+     CALL LOAD_V40REC;                                                  06891199
+                                                                        06891276
+     SIZE_REC.SIZE = V40_REC.ADAY_SSIZE;                                06892099
+     WESEVAL_REC.WESEVAL = V40_REC.WE69;                                06893099
+                                                                        06894076
+     SELECT (J);                                                        06900018
+        WHEN (1)                                                        06910018
+         DO;                                                            06920018
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            06920176
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     06920286
+         END;                                                           06923018
+        WHEN (2)                                                        06924076
+         DO;                                                            06925076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            06926076
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     06926186
+         END;                                                           06927076
+        WHEN (3)                                                        06928076
+         DO;                                                            06929076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            06930076
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     06931086
+         END;                                                           06940076
+        WHEN (4)                                                        06950076
+         DO;                                                            06960076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            06970076
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     06971086
+         END;                                                           06980076
+        WHEN (5)                                                        06990076
+         DO;                                                            07000076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07010076
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07011086
+         END;                                                           07020076
+        WHEN (6)                                                        07030076
+         DO;                                                            07040076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07050076
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07051086
+         END;                                                           07060076
+        WHEN (7)                                                        07070076
+         DO;                                                            07080076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07090076
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07091086
+         END;                                                           07100076
+        WHEN (8)                                                        07110076
+         DO;                                                            07120076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07130076
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07131086
+         END;                                                           07140076
+        WHEN (9)                                                        07150076
+         DO;                                                            07160076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07170076
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07171086
+         END;                                                           07180076
+        WHEN (10)                                                       07190076
+         DO;                                                            07200076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07210076
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07211086
+         END;                                                           07220076
+        WHEN (11)                                                       07221076
+         DO;                                                            07240076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07250076
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07251086
+         END;                                                           07260076
+        WHEN (12)                                                       07270076
+         DO;                                                            07280076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07290076
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07291086
+         END;                                                           07300076
+        WHEN (13)                                                       07310076
+         DO;                                                            07320076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07321076
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07321186
+         END;                                                           07322076
+        WHEN (14)                                                       07323076
+         DO;                                                            07324076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07324176
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07324286
+         END;                                                           07324376
+        WHEN (15)                                                       07324476
+         DO;                                                            07324576
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07324676
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07324786
+         END;                                                           07324876
+        WHEN (16)                                                       07324976
+         DO;                                                            07325076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07325176
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07325286
+         END;                                                           07325376
+        WHEN (17)                                                       07325476
+         DO;                                                            07325576
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07325676
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07325786
+         END;                                                           07325876
+        WHEN (18)                                                       07325976
+         DO;                                                            07326076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07326176
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07326286
+         END;                                                           07326376
+        WHEN (19)                                                       07326476
+         DO;                                                            07326576
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07326676
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07326786
+         END;                                                           07326876
+        WHEN (20)                                                       07326976
+         DO;                                                            07327076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07327176
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07327286
+         END;                                                           07327376
+        WHEN (21)                                                       07327476
+         DO;                                                            07327576
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07327676
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07327786
+         END;                                                           07327876
+        WHEN (22)                                                       07327976
+         DO;                                                            07328076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07328189
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07328286
+         END;                                                           07328476
+        WHEN (23)                                                       07328576
+         DO;                                                            07328676
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07328786
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07328889
+         END;                                                           07329076
+        WHEN (24)                                                       07329176
+         DO;                                                            07329276
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07329376
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07329589
+         END;                                                           07329676
+        WHEN (25)                                                       07329776
+         DO;                                                            07329876
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07329976
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07330089
+         END;                                                           07330276
+        WHEN (26)                                                       07330376
+         DO;                                                            07330476
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07330576
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07330689
+         END;                                                           07330876
+        WHEN (27)                                                       07330976
+         DO;                                                            07331076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07331176
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07331289
+         END;                                                           07331476
+        WHEN (28)                                                       07331576
+         DO;                                                            07331676
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07331776
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07331889
+         END;                                                           07332076
+        WHEN (29)                                                       07332176
+         DO;                                                            07332276
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07332376
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07332489
+         END;                                                           07332676
+        WHEN (30)                                                       07332776
+         DO;                                                            07332876
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07332976
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07333089
+         END;                                                           07333276
+        WHEN (31)                                                       07333376
+         DO;                                                            07333476
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07333576
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07333689
+         END;                                                           07333876
+        WHEN (32)                                                       07333976
+         DO;                                                            07334076
+            DN_REC.DEMO_NAME = WESE_ITEM(J);                            07334176
+            DEMOG_TOP.DEMOGRAPHICID = WESE_DEMO(J);                     07334289
+         END;                                                           07334476
+        OTHERWISE;                                                      07334576
+      END;                                                              07334676
+      CALL WRITE_XMLOUT;                                                07335080
+  END;                                                                  07340076
+      WRITE FILE (WE69XML) FROM (WR_BOT);                               07350080
+      WRITE FILE (WE69XML) FROM (LMRSWR_BOT);                           07360081
+ END LOAD_XML_STRUCT;                                                   07370014
+                                                                        07390056
+ /******************************************************************/   07411050
+ /*  WRITE OUT RECORD PREPARE FOR XML FORMAT                       */   07412050
+ /******************************************************************/   07413050
+ WRITE_XMLOUT: PROC;                                                    07420014
+  WRITE FILE (WE69XML) FROM (WD_TOP);                                   07512077
+  WRITE FILE (WE69XML) FROM (LD_TOP);                                   07513077
+  WRITE FILE (WE69XML) FROM (DEMOG_TOP);                                07513186
+  WRITE FILE (WE69XML) FROM (DN_REC);                                   07514077
+  WRITE FILE (WE69XML) FROM (LD_BOT);                                   07514177
+  WRITE FILE (WE69XML) FROM (SIZE_REC);                                 07515077
+  WRITE FILE (WE69XML) FROM (WESEVAL_REC);                              07516093
+  WRITE FILE (WE69XML) FROM (WD_BOT);                                   07517077
+ END WRITE_XMLOUT;                                                      08070014
+                                                                        08590014
+ /*----------------------------------------------------------------*/   10680073
+ /* CREATE A TEMPORARY FILE THAT WILL CONTAIN THE FTP INSTRUCTIONS */   10690014
+ /*  AND A CYC/SERV DATASET THAT CAN CHANGE BASED ON THE RUN DATE  */   10700014
+ /*----------------------------------------------------------------*/   10701073
+ CREATE_FTP_FILE: PROC;                                                 10720014
+                                                                        10740065
+  IF SRV_TYPE = '2' THEN                                                10741066
+  BUILD_FTP2 = 'PUT '||'''NSIN.'||PARM_DSL||'.'||PARM_DEPT||'.'||       10750031
+  'NSI.'||PARM_CYC||PARM_YEAR||'.WESE'||PDMA_CODE||'.OUT'''||' '||      10760065
+  'LPMWESE_NSI_'||PDMA_CODE||'_'||PARM_YEAR||'_'||PARM_CYC||'.xml';     10770099
+                                                                        10780014
+  WRITE FILE (WE69FTP) FROM (BUILD_FTP1);                               10840068
+  WRITE FILE (WE69FTP) FROM (BUILD_FTP2);                               10850068
+  WRITE FILE (WE69FTP) FROM (BUILD_FTP3);                               10860068
+                                                                        10870014
+ END CREATE_FTP_FILE;                                                   10880014
+                                                                        10881021
+ ENDJOB:                                                                10890021
+ /*-----------------------*/                                            10900018
+ /*  CLOSE ALL OPEN FILES */                                            10910018
+ /*-----------------------*/                                            10920018
+ CLOSE FILE (W42VCMD),                                                  10941018
+       FILE (V40VBPL),                                                  10942018
+       FILE (WE69FTP),                                                  10944068
+       FILE (WE69XML),                                                  10944168
+       FILE (SYSPRINT);                                                 10945018
+ END;                                                                   
+
+
+/*-------------------------------------------------------------*/       00009
+ /* COMPONENT NAME : SWRSZ01PR                                  */      00010
+ /* COMPONENT TYPE : PL/1 ROUTINE                               */      00011
+ /* COMPONENT TITLE: VSAM ASSIST CONTROL CARD UPDATE.           */      00012
+ /* AUTHOR         : VINCENT P. TAYLOR                          */      00013
+ /* DATE           : MARCH 22, 2006                             */      00014
+ /*                                                             */      00015
+ /* LAST MODIFIED  : N/A                                        */      00016
+ /* DATE           :                                            */      00017
+ /* VERSION        :                                            */      00018
+ /* MODIFICATION   :                                            */      00019
+ /*-------------------------------------------------------------*/      00020
+ %INCLUDE SXFILLM1;                                                     00021
+ %INCLUDE SXSORTM1;                                                     00022
+ /*------------------------------*/                                     00023
+ /* INPUT/OUTPUT AREAS           */                                     00024
+ /*------------------------------*/                                     00025
+ /* DATASET NODE */                                                     00026
+ DCL DDNAME         CHAR(07) VARYING;                                   00027
+ DCL DDHOLD         CHAR(07) VARYING;                                   00028
+ /* NEW FILE NAME */                                                    00029
+ DCL NEWHLQ         CHAR(80)  VARYING;                                  00030
+ DCL HOLDHLQ        CHAR(80)  VARYING;                                  00031
+ DCL HOLDDSN        CHAR(80)  VARYING;                                  00032
+ DCL OUTDSN         CHAR(80)  VARYING;                                  00033
+ DCL NEWNAME        CHAR(80)  VARYING;                                  00034
+ DCL REST_OF_DSN    CHAR(80)  VARYING;                                  00035
+ DCL DUPDSN         CHAR(80)  VARYING;                                  00036
+ /* OLD FILE NAME */                                                    00037
+ DCL OLDNAME        CHAR(80)  VARYING;                                  00038
+ /* INSTREAM SEARCH RECORDS*/                                           00039
+ DCL 1 SRCH_REC(1000),                                                  00040
+      3 CRITERIA    CHAR(69),                                           00041
+      3 FILLER      CHAR(10),                                           00042
+      3 PROCESSED   CHAR(1);                                            00043
+                                                                        00044
+ DCL TEMP           CHAR(80);                                           00045
+ /* TRANSACTION RECORDS */                                              00046
+ DCL TRAN_IMAGE     CHAR(133);                                          00047
+ /* VSAM ASSIST RECORDS */                                              00048
+ DCL 1 VSAM_REC(1000),                                                  00049
+       3 DSN        CHAR(44),                                           00050
+       3 FILLER     CHAR(36);                                           00051
+ /* ADRDSSU RECORDS */                                                  00052
+ DCL 1 ADRD_REC(1000),                                                  00053
+       3 DSN        CHAR(44),                                           00054
+       3 FILLER     CHAR(36);                                           00055
+                                                                        00056
+ /*------------------------------*/                                     00057
+ /* INPUT/OUTPUT FILE DECLARATION*/                                     00058
+ /*------------------------------*/                                     00059
+ DCL ADOUT    FILE OUTPUT RECORD;                                       00060
+ DCL SRCH     FILE INPUT  RECORD;                                       00061
+ DCL SYSPRINT FILE OUTPUT;                                              00062
+ DCL TRAN     FILE INPUT  RECORD;                                       00063
+ DCL VAOUT    FILE OUTPUT RECORD;                                       00064
+                                                                     00065
+ /*------------------------------*/                                     00066
+ /* CONTROL CARD FORMAT STRUCTURE*/                                     00067
+ /*------------------------------*/                                     00068
+ DCL 1 VSAM_ASSIST_RESTORE,                                             00069
+       2 FILLER   CHAR(02) INIT (' '),                                  00070
+       2 RESTORE  CHAR(09) INIT ('RESTORE  '),                          00071
+       2 FROMDD   CHAR(14) INIT ('FROMDD=BACKUP1'),                     00072
+       2 COMMA1   CHAR(01) INIT (','),                                  00073
+       2 VOLUME   CHAR(16) INIT ('NEWVOLUME=MVS850'),                   00074
+       2 COMMA2   CHAR(01) INIT (','),                                  00075
+       2 FILLER   CHAR(37) INIT (' ');                                  00076
+                                                                        00077
+ DCL 1 VSAM_ASSIST_INCGEN,                                              00078
+       2 FILLER   CHAR(02) INIT (' '),                                  00079
+       2 INCGEN   CHAR(08) INIT ('INCGEN=('),                           00080
+       2 FILENM   CHAR(70);                                             00081
+                                                                        00082
+ DCL 1 VSAM_ASSIST_OUTDD,                                               00083
+       2 FILLER   CHAR(10) INIT (' '),                                  00084
+       2 FILENM   CHAR(70) INIT (' ');                                  00085
+                                                                        00086
+ DCL 1 VSAM_ASSIST_OUT_PARMS,                                           00087
+       2 FILLER   CHAR(10) INIT (' '),                                  00088
+       2 PARMS    CHAR(70) INIT (                                       00089
+         'REPLACE),OVALVAL,ALTINDX=INCLUDE,HS,MG=MCNER060');            00090
+                                                                        00091
+ DCL 1 ADRDSSU_RESTORE,                                                 00092
+       2 FILLER   CHAR(02) INIT (' '),                                  00093
+       2 RESTORE  CHAR(32) INIT ('RESTORE  INDD(BACKUP1)         -'),   00094
+       2 FILLER   CHAR(46) INIT (' ');                                  00095
+                                                                        00096
+ DCL 1 ADRDSSU_DATASET,                                                 00097
+       2 FILLER   CHAR(02) INIT (' '),                                  00098
+       2 DATASET  CHAR(16) INIT ('DATASET(INCLUDE('),                   00099
+       2 FILNAME  CHAR(36),                                             00100
+       2 PAR      CHAR(26) INIT ('  -                       ');         00101
+                                                                        00102
+ DCL 1 ADRDSSU_REPLACE,                                                 00103
+       2 FILLER   CHAR(02) INIT (' '),                                  00104
+       2 REPLACE  CHAR(38) INIT (                                       00105
+       'REPLACE MGMTCLAS(MCNER060) NSC  -     '),                       00106
+       2 FILLER   CHAR(40) INIT (' ');                                  00107
+                                                                        00108
+ DCL 1 ADRDSSU_RENUNC,                                                  00109
+       2 FILLER   CHAR(02) INIT (' '),                                  00110
+       2 RENUNC   CHAR(07) INIT ('RENUNC('),                            00111
+       2 FILNAMES CHAR(61),                                             00112
+       2 FILLER   CHAR(10) INIT (' ');                                  00113
+                                                                        00114
+ DCL BLANK_LINE   CHAR(80) INIT(' ') STATIC;                            00115
+ /*------------------------------*/                                     00116
+ /* INDEPENDENT VARIABLES        */                                     00117
+ /*------------------------------*/                                     00118
+ DCL AD_CNT      FIXED BIN (31,0) INIT (0);                             00119
+ DCL AD_HIT      BIT(1)           INIT('0'B);                           00120
+ DCL AD_WRITTEN  FIXED BIN (31,0) INIT (0);                             00121
+ DCL CONT_SW     BIT(1)           INIT('0'B);                           00122
+ DCL DUP_DSN     BIT(1)           INIT('0'B);                           00123
+ DCL I           FIXED BIN (31,0) INIT (0);                             00124
+ DCL J           FIXED BIN (31,0) INIT (0);                             00125
+ DCL NO          BIT(1)           INIT('0'B);                           00126
+ DCL ONE         FIXED BIN (31,0) INIT (1);                             00127
+ DCL POS         FIXED BIN (31,0) INIT (1);                             00128
+ DCL POS1        FIXED BIN (31,0) INIT (1);                             00129
+ DCL RETCODE     FIXED BIN (31,0) INIT (0);                             00130
+ DCL RETHOLD     FIXED BIN (31,0) INIT (0);                             00131
+ DCL SRCH_SW     BIT(1)           INIT('1'B);                           00132
+ DCL TRAN_SW     BIT(1)           INIT('1'B);                           00133
+ DCL SRCH_CNT    FIXED BIN (31,0) INIT (0);                             00134
+ DCL VA_CNT      FIXED BIN (31,0) INIT (0);                             00135
+ DCL VA_HIT      BIT(1)           INIT('0'B);                           00136
+ DCL VA_WRITTEN  FIXED BIN (31,0) INIT (0);                             00137
+ DCL YES         BIT(1)           INIT('1'B);                           00138
+                                                                        00139
+ /*------------------------------*/                                     00140
+ /* BUILTIN FUNCTIONS            */                                     00141
+ /*------------------------------*/                                     00142
+ DCL (INDEX, LENGTH, SUBSTR, TRIM)  BUILTIN;                            00143
+                                                                        00144
+ /*------------------------------*/                                     00145
+ /* ON CONDITON BLOCK            */                                     00146
+ /*------------------------------*/                                     00147
+                                                                        00148
+ ON ENDFILE(TRAN)                                                       00149
+    BEGIN;                                                              00150
+     TRAN_SW = NO;                                                      00151
+    END;                                                                00152
+                                                                        00153
+ ON ENDFILE(SRCH)                                                       00154
+    BEGIN;                                                              00155
+     SRCH_SW = NO;                                                      00156
+    END;                                                                00157
+                                                                        00158
+ OPEN FILE(ADOUT),                                                      00159
+      FILE(SRCH),                                                       00160
+      FILE(SYSPRINT),                                                   00161
+      FILE(TRAN),                                                       00162
+      FILE(VAOUT);                                                      00163
+                                                                        00164
+ /* START OF  MAIN PROCESSING */                                        00165
+ DO WHILE (TRAN_SW);                                                    00166
+    /*-----------------------------------------------------*/           00167
+    /* READ FROM MASTER FILE STORE ALL RECORDS IN AN ARRAY */           00168
+    /*-----------------------------------------------------*/           00169
+    READ FILE (TRAN) INTO (TRAN_IMAGE);                                 00170
+    /* CHECK RECORD FOR UTILITY TO PROCESS*/                            00171
+    IF INDEX(TRAN_IMAGE,'DFSMSDSS') > 0 | AD_HIT THEN                   00172
+       DO;                                                              00173
+           AD_HIT = YES;                                                00174
+           /* CHECK RECORD FOR VALID DATASET NAME*/                     00175
+           POS = INDEX(TRAN_IMAGE,'DATA SET');                          00176
+           TEMP = SUBSTR(TRAN_IMAGE,POS+9,80);                          00177
+           POS = INDEX(TEMP,' ');                                       00178
+           TEMP = SUBSTR(TEMP,1,POS-1);                                 00179
+           IF INDEX(TEMP,'.') > 0 THEN                                  00180
+              DO;                                                       00181
+                AD_CNT = AD_CNT + 1;                                    00182
+                ADRD_REC(AD_CNT).DSN = TRIM(TEMP);                      00183
+              END;                                                      00184
+       END;                                                             00185
+                                                                        00186
+    IF INDEX(TRAN_IMAGE,'VSAM-ASSIST') > 0 | VA_HIT THEN                00187
+       DO;                                                              00188
+           VA_HIT = YES;                                                00189
+           /* CHECK RECORD FOR VALID DATASET NAME*/                     00190
+           IF INDEX(TRAN_IMAGE,'.') > 0 THEN                            00191
+              DO;                                                       00192
+           /*-----------------------------------------------------*/    00193
+           /* POS 16 = START OF FILE NAME ON VSAM ASSIST DATA SET */    00194
+           /* POS 60 = END OF FILE NAME ON VSAM ASSIST DATASET */       00195
+           /*-----------------------------------------------------*/    00196
+                DO I = 60 TO 15 BY -1;                                  00197
+                IF SUBSTR(TRAN_IMAGE,I,1) > ' ' THEN LEAVE;             00198
+                END;                                                    00199
+                IF SUBSTR(TRAN_IMAGE,61,1) = 'C' THEN /* CLUSTER */     00200
+                  DO;                                                   00201
+                    VA_CNT = VA_CNT + 1;                                00202
+                    VSAM_REC(VA_CNT).DSN = SUBSTR(TRAN_IMAGE,16,(I-15));00203
+                  END;                                                  00204
+              END;                                                      00205
+       END;                                                             00206
+ END;                                                                   00207
+                                                                        00208
+ IF VA_HIT THEN                                                         00209
+    DO;                                                                 00210
+      $SORT TABLE(VSAM_REC) BY (DSN)                                    00211
+      ORDER (ASCENDING) TO (VA_CNT);                                    00212
+    END;                                                                00213
+                                                                        00214
+ IF AD_HIT THEN                                                         00215
+    DO;                                                                 00216
+      $SORT TABLE(ADRD_REC) BY (DSN)                                    00217
+      ORDER (ASCENDING) TO (AD_CNT);                                    00218
+    END;                                                                00219
+                                                                        00220
+ /*-----------------------------*/                                      00221
+ /* PROCESS RECORD              */                                      00222
+ /*-----------------------------*/                                      00223
+ CALL PROCESS_SRCH;                                                     00224
+ CALL GET_FIELD_VALUES;                                                 00225
+ CALL CHECK_PROCESS_IND;                                                00226
+ CALL EOJ_PROCESS;                                                      00227
+                                                                        00228
+ /*-----------------*/                                                  00229
+ /* READ SRCH FILE */                                                   00230
+ /*-----------------*/                                                  00231
+ PROCESS_SRCH: PROC;                                                    00232
+    SRCH_REC(*) = '';                                                   00233
+    DO WHILE (SRCH_SW);                                                 00234
+       SRCH_CNT = SRCH_CNT + 1;                                         00235
+       READ FILE(SRCH) INTO(SRCH_REC(SRCH_CNT));                        00236
+       SRCH_REC(SRCH_CNT).PROCESSED = ' ';                              00237
+    END;                                                                00238
+    SRCH_CNT = SRCH_CNT - 1;                                            00239
+ END PROCESS_SRCH;                                                      00240
+ /*-------------------------------------*/                              00241
+ /* RETRIEVE VALUE TO ASSIGN TO RECORDS */                              00242
+ /*-------------------------------------*/                              00243
+ GET_FIELD_VALUES: PROC;                                                00244
+                                                                        00245
+  IF VA_HIT THEN                                                        00246
+    DO I = 1 TO SRCH_CNT;                                               00247
+     POS      = INDEX(SRCH_REC(I).CRITERIA,',');                        00248
+     DDNAME   = TRIM(SUBSTR(SRCH_REC(I).CRITERIA,POS+1));               00249
+     NEWHLQ   = SUBSTR(SRCH_REC(I).CRITERIA,1,POS-1);                   00250
+     DO J  = 1 TO VA_CNT;                                               00251
+       POS = INDEX(VSAM_REC(J).DSN,DDNAME);                             00252
+       IF POS = 0 THEN;   /* DDNAME NOT FOUND */                        00253
+       ELSE                                                             00254
+         DO;                                                            00255
+           SRCH_REC(I).PROCESSED = 'Y';                                 00256
+           REST_OF_DSN = TRIM(SUBSTR(VSAM_REC(J).DSN,POS));             00257
+           IF DDNAME = DDHOLD THEN  /* MORE THEN ONE FILE ON TAPE */    00258
+             IF HOLDDSN = REST_OF_DSN THEN                              00259
+               DO;                                                      00260
+                 DUP_DSN = YES;                                         00261
+                 DUPDSN  = HOLDHLQ||'.'||HOLDDSN;                       00262
+               END;                                                     00263
+             ELSE;                                                      00264
+           ELSE                                                         00265
+             DO;                                                        00266
+               HOLDDSN = REST_OF_DSN;                                   00267
+               HOLDHLQ = SUBSTR(VSAM_REC(J).DSN,1,POS-2);               00268
+               DDHOLD  = DDNAME;                                        00269
+               DUP_DSN = NO;                                            00270
+               DUPDSN  = '';                                            00271
+             END;                                                       00272
+           OUTDSN      = NEWHLQ||'.'||REST_OF_DSN;                      00273
+           IF LENGTH(OUTDSN) > 44 THEN                                  00274
+            DO;                                                         00275
+             PUT SKIP LIST ('OUTPUT DATASET NAME > 44 CHARACTERS: '||   00276
+                             OUTDSN);                                   00277
+             CALL SET_RETCODE(12);                                      00278
+            END;                                                        00279
+           ELSE                                                         00280
+            DO;                                                         00281
+             POS1 = INDEX(VSAM_REC(J).DSN,'.',POS);                     00282
+             OLDNAME  = SUBSTR(VSAM_REC(J).DSN,1,POS-2)||'.'||DDNAME;   00283
+             NEWNAME  = NEWHLQ||'.'||DDNAME;                            00284
+             CALL WRITE_VAREC;                                          00285
+             NEWNAME  = '';                                             00286
+             IF DUP_DSN = YES THEN                                      00287
+              DO;                                                       00288
+                PUT SKIP LIST ('   **** MULTIPLE '||DDNAME||            00289
+                               ' FILES FOUND ON VA TAPE. ****');        00290
+                PUT SKIP LIST ('REPLACING DSN: '||DUPDSN);              00291
+                PUT SKIP LIST ('    WITH     : '||VSAM_REC(J).DSN);     00292
+                CALL SET_RETCODE(4);                                    00293
+              END;                                                      00294
+             ELSE;                                                      00295
+            END;                                                        00296
+         END;                                                           00297
+     END;                                                               00298
+    END;                                                                00299
+                                                                        00300
+   DDNAME      = '';                                                    00301
+   NEWHLQ      = '';                                                    00302
+   DUPDSN      = '';                                                    00303
+   HOLDDSN     = '';                                                    00304
+   HOLDHLQ     = '';                                                    00305
+   DDHOLD      = '';                                                    00306
+   DUP_DSN     = NO;                                                    00307
+   REST_OF_DSN = '';                                                    00308
+   IF AD_HIT THEN                                                       00309
+    DO I = 1 TO SRCH_CNT;                                               00310
+     POS      = INDEX(SRCH_REC(I).CRITERIA,',');                        00311
+     DDNAME   = TRIM(SUBSTR(SRCH_REC(I).CRITERIA,POS+1));               00312
+     NEWHLQ   = SUBSTR(SRCH_REC(I).CRITERIA,1,POS-1);                   00313
+     IF SRCH_REC(I).PROCESSED = ' ' THEN                                00314
+      DO J  = 1 TO AD_CNT;                                              00315
+        POS = INDEX(ADRD_REC(J).DSN,DDNAME);                            00316
+        IF POS = 0 THEN;   /* DDNAME NOT FOUND */                       00317
+        ELSE                                                            00318
+          DO;                                                           00319
+            SRCH_REC(I).PROCESSED = 'Y';                                00320
+            REST_OF_DSN = TRIM(SUBSTR(ADRD_REC(J).DSN,POS));            00321
+            IF DDNAME = DDHOLD THEN  /* MORE THEN ONE FILE ON TAPE */   00322
+              IF HOLDDSN = REST_OF_DSN THEN                             00323
+                DO;                                                     00324
+                  DUP_DSN = YES;                                        00325
+                  DUPDSN  = HOLDHLQ||'.'||HOLDDSN;                      00326
+                END;                                                    00327
+              ELSE;                                                     00328
+            ELSE                                                        00329
+              DO;                                                       00330
+                HOLDDSN = REST_OF_DSN;                                  00331
+                HOLDHLQ = SUBSTR(ADRD_REC(J).DSN,1,POS-2);              00332
+                DDHOLD  = DDNAME;                                       00333
+                DUP_DSN = NO;                                           00334
+                DUPDSN  = '';                                           00335
+              END;                                                      00336
+            OUTDSN      = NEWHLQ||'.'||REST_OF_DSN;                     00337
+            IF LENGTH(OUTDSN) > 44 THEN                                 00338
+             DO;                                                        00339
+              PUT SKIP LIST ('OUTPUT DATASET NAME > 44 CHARACTERS: '||  00340
+                              OUTDSN);                                  00341
+              CALL SET_RETCODE(8);                                      00342
+             END;                                                       00343
+            ELSE                                                        00344
+             DO;                                                        00345
+              POS1 = INDEX(ADRD_REC(J).DSN,'.',POS);                    00346
+              OLDNAME  = SUBSTR(ADRD_REC(J).DSN,1,POS-2)||'.'||DDNAME;  00347
+              NEWNAME  = NEWHLQ||'.'||DDNAME;                           00348
+              CALL WRITE_ADREC;                                         00349
+              NEWNAME  = '';                                            00350
+              IF DUP_DSN = YES THEN                                     00351
+               DO;                                                      00352
+                 PUT SKIP LIST ('   **** MULTIPLE '||DDNAME||           00353
+                                ' FILES FOUND ON ADRDSSU TAPE. ****');  00354
+                 PUT SKIP LIST ('REPLACING DSN: '||DUPDSN);             00355
+                 PUT SKIP LIST ('    WITH     : '||ADRD_REC(J).DSN);    00356
+                 CALL SET_RETCODE(4);                                   00357
+               END;                                                     00358
+              ELSE;                                                     00359
+             END;                                                       00360
+          END;                                                          00361
+      END;                                                              00362
+     ELSE;                                                              00363
+    END;                                                                00364
+ END GET_FIELD_VALUES;                                                  00365
+                                                                        00366
+ /*-------------------*/                                                00367
+ /* WRITE VA RECORDS  */                                                00368
+ /*-------------------*/                                                00369
+ WRITE_VAREC: PROC;                                                     00370
+   /* POPULATE OUTPUT FILES*/                                           00371
+   WRITE FILE(VAOUT) FROM (VSAM_ASSIST_RESTORE);                        00372
+   VSAM_ASSIST_INCGEN.FILENM = TRIM(OLDNAME)||',';                      00373
+   WRITE FILE(VAOUT) FROM (VSAM_ASSIST_INCGEN);                         00374
+   VSAM_ASSIST_OUTDD.FILENM = TRIM(NEWNAME)||',';                       00375
+   WRITE FILE(VAOUT) FROM (VSAM_ASSIST_OUTDD);                          00376
+   WRITE FILE(VAOUT) FROM (VSAM_ASSIST_OUT_PARMS);                      00377
+   WRITE FILE(VAOUT) FROM (BLANK_LINE);                                 00378
+   VSAM_ASSIST_OUTDD.FILENM = '';                                       00379
+   VA_WRITTEN = 1;                                                      00380
+ END WRITE_VAREC;                                                       00381
+                                                                        00382
+ /*-------------------*/                                                00383
+ /* WRITE AD RECORDS  */                                                00384
+ /*-------------------*/                                                00385
+ WRITE_ADREC: PROC;                                                     00386
+   WRITE FILE(ADOUT) FROM (ADRDSSU_RESTORE);                            00387
+   ADRDSSU_DATASET.FILNAME = TRIM(OLDNAME)||'.**))';                    00388
+   WRITE FILE(ADOUT) FROM (ADRDSSU_DATASET);                            00389
+   WRITE FILE(ADOUT) FROM (ADRDSSU_REPLACE);                            00390
+   ADRDSSU_RENUNC.FILNAMES = TRIM(OLDNAME)||'.**,'||                    00391
+                             TRIM(NEWNAME)||'.**)';                     00392
+   WRITE FILE(ADOUT) FROM (ADRDSSU_RENUNC);                             00393
+   WRITE FILE(ADOUT) FROM (BLANK_LINE);                                 00394
+   AD_WRITTEN = 2;                                                      00395
+ END WRITE_ADREC;                                                       00396
+                                                                        00397
+ /*-----------------*/                                                  00398
+ /* READ SRCH TABLE */                                                  00399
+ /*-----------------*/                                                  00400
+ CHECK_PROCESS_IND: PROC;                                               00401
+    DO I = 1 TO SRCH_CNT;                                               00402
+      IF SRCH_REC(I).PROCESSED = 'Y' THEN;                              00403
+      ELSE                                                              00404
+       DO;                                                              00405
+         POS = INDEX(SRCH_REC(I).CRITERIA,',');                         00406
+         DDNAME = TRIM(SUBSTR(SRCH_REC(I).CRITERIA,POS+1));             00407
+         PUT SKIP LIST ('FILE NOT FOUND ON BACKUP FILE: '||DDNAME);     00408
+         CALL SET_RETCODE(12);                                          00409
+       END;                                                             00410
+    END;                                                                00411
+ END CHECK_PROCESS_IND;                                                 00412
+ EOJ_PROCESS: PROC;                                                     00413
+   CLOSE FILE(ADOUT),                                                   00414
+         FILE(SRCH),                                                    00415
+         FILE(SYSPRINT),                                                00416
+         FILE(TRAN),                                                    00417
+         FILE(VAOUT);                                                   00418
+                                                                        00419
+    IF RETHOLD <= 4 THEN                                                00420
+      DO;                                                               00421
+        RETHOLD = RETHOLD + (VA_WRITTEN + AD_WRITTEN);                  00422
+      END;                                                              00423
+    ELSE;                                                               00424
+    CALL PLIRETC(RETHOLD);                                              00425
+ END EOJ_PROCESS;                                                       00426
+                                                                        00427
+ SET_RETCODE: PROC(RC);                                                 00428
+                                                                        00429
+   DCL RC FIXED BIN(31);                                                00430
+                                                                        00431
+   IF RC > RETHOLD THEN RETHOLD = RC;                                   00432
+                                                                        00433
+ END SET_RETCODE;                                                       00434
+0END SWRS;                                                              00435
