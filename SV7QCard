@@ -1,0 +1,255 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+* Author: Vincent Taylor
+* 
+* Created Sept XXXX
+*
+* Description:  A class to handle Extraction of Cycle Closes from Local Hub.
+*
+*    Contents:  class SV7QCard
+*
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+*
+* PVCS Revision History:
+* ----------------------
+*
+* $Log:   //vmfs/vcs/local/src/java/com/media/lmrs/file/SV7QCard.j!va  $
+*/
+
+package com.media.business.assembly.vip;
+
+import com.dovetail.jzos.*;
+
+import java.io.*;
+import javax.xml.soap.*;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.dom.DOMResult;
+import javax.xml.transform.stream.StreamSource;
+
+public class SV7QCard
+{
+  public static void main(String[] args) throws Exception
+  {
+    java.util.Iterator it1 = null;
+    java.util.Iterator it2 = null;
+    java.util.Iterator it3 = null;
+    
+    String DMA = "0";
+    String SSC = "0";
+    String DMASSC = "0";
+    String SDMA = " ";
+            
+    try 
+    {
+     //*-------------------------------------------------------------------------------------------------*                    
+     //*Get the endpoint address from the ENDPOINT DDNAME control card.     *   
+     //*-------------------------------------------------------------------------------------------------* 	
+     char[] buf = new char[100];
+     
+      ZFile endPointFile = new ZFile("//DD:ENDPOINT","r");
+   
+      InputStreamReader endPointStreamReader = 
+      	new InputStreamReader(endPointFile.getInputStream(), 
+      ZFile.DEFAULT_EBCDIC_CODE_PAGE);
+      int length = endPointStreamReader.read(buf);
+      if (length == -1)
+      {
+        throw new RuntimeException("ENDPOINT DDNAME cannot be opened or 
+                                   contains nothing.");
+      }
+   
+      endPointStreamReader.close();
+      
+      String endpoint = new String(buf).trim();
+      
+      //*-----------------------------------------------*
+      // Create an empty SOAP message.  *
+      //*-----------------------------------------------*
+      MessageFactory mf = MessageFactory.newInstance();
+      SOAPMessage sm = mf.createMessage();
+      
+      //*---------------------------------------------------------------------------------------* 
+      //* Accessing 4 Elements of a Message. Its Part, Envelope, Header * 
+      //* and Body Either to Add Contents or to Retrieive Contents            * 
+      //*---------------------------------------------------------------------------------------* 
+      SOAPPart sp = sm.getSOAPPart();
+      SOAPEnvelope se = sp.getEnvelope();
+      SOAPHeader sh = se.getHeader();
+      SOAPBody sb = sm.getSOAPBody();
+      
+      // Open the input request file.
+       ZFile inFile = new ZFile("//DD:REQUEST","r");
+     
+      InputStreamReader inputStreamReader = 
+      	new InputStreamReader(inFile.getInputStream(), 
+      ZFile.DEFAULT_EBCDIC_CODE_PAGE);
+     
+      StreamSource streamSource = new StreamSource(inputStreamReader);
+        
+      // Convert the input request file to a SOAP Element and 
+      // add it to the SOAP Body.
+      
+      TransformerFactory transformerFactory = 
+      TransformerFactory.newInstance();
+      Transformer transformer = transformerFactory.newTransformer();
+      DOMResult domResult = new DOMResult(sb);
+      transformer.transform(streamSource, domResult);
+
+      //*-----------------------------------------------------------------------------------------*
+      //* Get the name of the input XML request type to set the                    *
+      //* SOAPAction.                                                                                     *
+      //* Per Local Development standards, the SOAPAction is always the  * 
+      //* name of the service/operation.  The XML request type name is      *
+      //* always the service/operation name with "Request" added to the     *
+      //* end.                                                                                                   * 
+      //* Therefore, strip off "Request" to get the SOAPAction.                     *
+      //*-----------------------------------------------------------------------------------------*
+      
+      it1 = sb.getChildElements();
+    
+      SOAPElement request = null;
+      
+      while (it1.hasNext())
+      {
+        if (request != null)
+        {
+          throw new RuntimeException("Input request should contain only 
+                                     one top level request type.");
+        }
+        request = (SOAPElement)it1.next();
+      }
+               
+      String requestName = request.getNodeName();
+     
+      int serviceNameLength = requestName.indexOf("Request");
+     
+      if (serviceNameLength == -1 ||
+           requestName.length() != (serviceNameLength + 7))
+           {
+           throw new RuntimeException("The name of the input request has 
+                                      to end with \"Request\".");
+           }
+
+      String SoapAction = requestName.substring(0, serviceNameLength);
+
+      // Set the SOAPAction.
+      MimeHeaders hds = sm.getMimeHeaders();
+      hds.addHeader("SOAPAction", "\"" + SoapAction + "\"");
+      
+      // Set additional SOAP Message properties and save changes.	
+      
+      sm.setProperty(SOAPMessage.WRITE_XML_DECLARATION, "true");
+      sm.saveChanges();
+      
+      // Call the service.
+      SOAPConnectionFactory factory = 
+      SOAPConnectionFactory.newInstance();
+      SOAPConnection con = factory.createConnection();
+      SOAPMessage responseMessage = con.call(sm, endpoint);
+      
+      //*------------------------------------------------*
+      //* Get the response from the service. *
+      //*------------------------------------------------* 
+      SOAPBody responseBody = responseMessage.getSOAPBody();
+       
+      //*-------------------------------------------*
+      //* Check if SOAP Fault received.  *
+      //*-------------------------------------------*
+      if (responseBody.hasFault())
+      {
+        SOAPFault soapFault = responseBody.getFault();
+        System.err.println("SOAP Fault received from service:");
+        System.err.println("   Fault Actor : " + 
+                           soapFault.getFaultActor());
+        System.err.println("   Fault Code  : " + 
+                           soapFault.getFaultCode());
+        System.err.println("   Fault String: " + 
+                           soapFault.getFaultString());
+        throw new RuntimeException("SOAP Fault received from service.");
+      }
+	
+    
+      //*---------------------------*
+      //* Get the response.   *
+      //*---------------------------*
+      it1 = responseBody.getChildElements();
+              
+      SOAPElement response = null;
+      
+      while (it1.hasNext())
+      {
+        if (response != null) 
+        {
+          throw new RuntimeException("Service response should contain 
+                                     only one top level response type.");
+        }
+        response = (SOAPElement)it1.next();
+        
+      }
+      // Returns an it1ator over all the immediate child nodes of this 
+      // element
+      it1 = response.getChildElements();
+            
+      //*-----------------------------*
+      //* Set up write variable *                                      
+      //*-----------------------------*
+      ZUtil.setDefaultOutputEncoding(ZFile.DEFAULT_EBCDIC_CODE_PAGE);
+      ZFile outFile = new ZFile("//DD:RECORDS","wb,type=record,noseek");
+      
+      while (it1.hasNext())
+	   {
+        SOAPElement record = (SOAPElement)it1.next();
+        String name = record.getElementName().getLocalName();
+                      
+        it2 = record.getChildElements();
+        while (it2.hasNext())
+         {
+          SOAPElement child2 = (SOAPElement)it2.next();
+          name = child2.getElementName().getLocalName();
+                    
+          if (name.equals("geographyID")) 
+              {   
+   	           DMA = child2.getValue();
+   	          }  
+          if (name.equals("samplingServiceCollectionMethodID")) 
+             {   
+   	          SSC = child2.getValue();  
+   	         }
+                           
+          it3 = child2.getChildElements();
+          while (it3.hasNext())
+           {
+            SOAPElement child3 = (SOAPElement)it3.next();
+            name = child3.getElementName().getLocalName();
+                                
+            if (name.equals("geographyID")) 
+               {   
+        	    DMA = child3.getValue(); 
+        	   }  
+            if (name.equals("samplingServiceCollectionMethodID")) 
+               {   
+        	    SSC = child3.getValue(); 
+        	    if (SDMA != DMA)
+                   {
+                    DMASSC = DMA + " " + SSC;
+                    outFile.write(DMASSC.getBytes());
+                    } 
+        	   }
+           } //Terminate while it3
+         }   //Terminate while it2
+       //Save DMA value
+        SDMA = DMA;
+       } //Terminate while it1
+       outFile.close();
+    } //Terminate Try 
+     catch(Exception e)
+     {
+      System.err.println("Caught exception: " + e);
+      e.printStackTrace();
+      System.exit(16);
+     }
+    System.err.println("Version 2.0.");
+  }  
+  
+}   //* terminate program
